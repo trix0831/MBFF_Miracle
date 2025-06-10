@@ -1,0 +1,7 @@
+# Development tools
+black==23.12.1
+pylint==3.0.3
+pytest==7.4.3
+cmake-format==0.6.13
+cpplint==1.6.1 
+matplotlib==3.8.0

@@ -1,0 +1,17 @@
+CellInst 4
+Inst NC0 SVT_FF_1 1677 6000
+Inst NC1 SVT_FF_1 3957 6000
+Inst NC2 SVT_FF_1 1677 6000
+Inst NC3 SVT_FF_1 5097 6000
+reg2/D map NC0/D
+reg2/CLK map NC0/CLK
+reg2/Q map NC0/Q
+reg4/D map NC1/D
+reg4/CLK map NC1/CLK
+reg4/Q map NC1/Q
+reg3/D map NC2/D
+reg3/CLK map NC2/CLK
+reg3/Q map NC2/Q
+reg1/D map NC3/D
+reg1/CLK map NC3/CLK
+reg1/Q map NC3/Q
