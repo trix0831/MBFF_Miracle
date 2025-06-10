@@ -32,6 +32,7 @@ public:
   unordered_map<string, InstancePin *> name2pPins() { return _name2pPins; }
   double TimingSlack(string pinName) { return _TimingSlack[pinName]; }
   unordered_map<string, double> TimingSlack() { return _TimingSlack; }
+  bool merged = 0;
   // Net *pinNet(InstancePin *pPin) { return _pinNet[pPin]; } // check different pin nets
   /////////////////////////////////////////////
   // set
