@@ -1,18 +1,19 @@
-CC=g++
-LDFLAGS=-std=c++17 -O3 -lm -Wall
-SOURCES=src/MBFFOptimizer.cpp src/main.cpp 
-OBJECTS=$(SOURCES:.c=.o)
-EXECUTABLE=mbff
-INCLUDES=src/MBFFOptimizer.h src/BucketList.h src/CellLibrary.h src/DisSet.h src/Graph.h src/Instance.h src/Net.h src/Pin.h src/PlacementRow.h src/Point.h
+CC = g++
+CXXFLAGS = -std=c++17 -O3 -Wall `pkg-config --cflags cairo`
+LDFLAGS = `pkg-config --libs cairo`
+SOURCES = src/Pin.cpp src/MBFFOptimizer.cpp src/main.cpp src/visualizer.cpp
+OBJECTS = $(SOURCES:.cpp=.o)
+EXECUTABLE = mbff
+INCLUDES = src/MBFFOptimizer.h
 
-all: $(SOURCES) bin/$(EXECUTABLE)
+all: bin/$(EXECUTABLE)
 
 bin/$(EXECUTABLE): $(OBJECTS)
 	mkdir -p bin
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
+	$(CC) $(OBJECTS) -o $@ $(LDFLAGS)
 
-%.o:  %.c  ${INCLUDES}
-	$(CC) $(CFLAGS) $< -o $@
+%.o: %.cpp $(INCLUDES)
+	$(CC) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	rm -rf *.o bin/$(EXECUTABLE)
+	rm -f src/*.o bin/$(EXECUTABLE)

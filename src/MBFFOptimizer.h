@@ -104,6 +104,31 @@ public:
   // Store pin mappings: each line like "C1/D map C3/D0"
   std::vector<std::string> _pinMappings;
 
+  double dieWidth() const
+  {
+    return _dieRightTop.x - _dieLeftBottom.x;
+  }
+  double dieHeight() const
+  {
+    return _dieRightTop.y - _dieLeftBottom.y;
+  }
+  unordered_map<string, Instance *> name2pInstances_ff()
+  {
+    return _name2pInstances_ff;
+  }
+  unordered_map<string, Instance *> name2pInstances_gate()
+  {
+    return _name2pInstances_gate;
+  }
+  unordered_map<string, CellLibrary *> name2pFFLibrary()
+  {
+    return _name2pFFLibrary;
+  }
+  unordered_map<string, CellLibrary *> name2pGateLibrary()
+  {
+    return _name2pGateLibrary;
+  }
+
 private:
   // Weight factors
   void DFS(unordered_map<row_index_pair, vector<Instance *>, row_index_pair_hash> *occupied,
