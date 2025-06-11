@@ -36,6 +36,10 @@ public:
     {
       _bucket.insert(inst);
     }
+    // for (auto &[name, inst] : _name2pInstances_ff)
+    // {
+    //   cout << "score: " << score(name, 2) << endl;
+    // }
     _outfile = out_file;
     cell_instance = 0;
     // best1bitff = new CellLibrary("123", "123", 1, 1000000, 1000000, 0);
@@ -143,7 +147,7 @@ private:
   double _beta;
   double _gamma;
   double _lambda;
-  double c1 = 1;
+  double c1 = 10000;
   double c2 = 1;
   string _outfile;
   // Die size

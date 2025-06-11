@@ -790,12 +790,12 @@ double MBFFOptimizer::HPWL(vector<Instance *> *pInstances)
     {
         if (instance->x() < x_min)
             x_min = instance->x();
-        if (instance->x() + instance->pCellLibrary()->width() > x_max)
-            x_max = instance->x() + instance->pCellLibrary()->width();
+        if (instance->x() > x_max)
+            x_max = instance->x();
         if (instance->y() < y_min)
             y_min = instance->y();
-        if (instance->y() + instance->pCellLibrary()->height() > y_max)
-            y_max = instance->y() + instance->pCellLibrary()->height();
+        if (instance->y() > y_max)
+            y_max = instance->y();
     }
     HPWL = (x_max - x_min) + (y_max - y_min);
     return HPWL;
@@ -813,11 +813,22 @@ double MBFFOptimizer::score(string InstanceName, int k)
     vector<Instance*> target2k, targetk;
     target2k = findknear(InstanceName, k * 2);
     for(int i = 0; i < k; i++){
+        // cout << "i: " << i << endl;
         L.push_back(target2k[i]);
     }
+    // cout << "target2k size: " << target2k.size() << endl;
+    // for(int i = 0; i < target2k.size(); i++){
+    //     cout << target2k[i]->name() << endl;
+    // }
+    // cout << "targetk size: " << L.size() << endl;
+    // for(int i = 0; i < L.size(); i++){
+    //     cout << L[i]->name() << endl;
+    // }
     double L2k = HPWL(&target2k);
     double Lk = HPWL(&L);
+    // cout << "L2k: " << L2k << " Lk: " << Lk << endl;
     score += L2k - Lk;
+    // cout << "c: " << c1 / c2 * (1 / (1 + exp(_name2pInstances_ff[InstanceName]->TimingSlack("D")))) <<endl;
     score += c1 / c2 * (1 / (1 + exp(_name2pInstances_ff[InstanceName]->TimingSlack("D"))));
     return score;
 }
@@ -832,6 +843,7 @@ vector<Instance*> MBFFOptimizer::findknear(string InstanceName, int k)
     int left = 0;
     int right = _bucket.bucket_query(x, 0).size() - 1;
     int index;
+    // cout << "left0: " << left << " right0: " << right << endl;
     while(left <= right){
         int mid = (left + right) / 2;
         if(_bucket.bucket_query(x, 0)[mid]->y() < y){
@@ -844,7 +856,6 @@ vector<Instance*> MBFFOptimizer::findknear(string InstanceName, int k)
         }
         index = mid;
     }
-    L.push_back(_bucket.bucket_query(x, 0)[index]);
     if(index + 1 < _bucket.bucket_query(x, 0).size()){
         L.push_back(_bucket.bucket_query(x, 0)[index + 1]);
     }
@@ -852,48 +863,67 @@ vector<Instance*> MBFFOptimizer::findknear(string InstanceName, int k)
         L.push_back(_bucket.bucket_query(x, 0)[index - 1]);
     }
     
+    int find_right = 1;
     left = 0;
-    right = _bucket.bucket_query(x, 1).size() - 1;
-    while(left <= right){
-        int mid = (left + right) / 2;
-        if(_bucket.bucket_query(x, 1)[mid]->y() < y){
-            left = mid + 1;
-        }else if(_bucket.bucket_query(x, 1)[mid]->y() > y){
-            right = mid - 1;
-        }else{
+    right = _bucket.bucket_query(x, find_right).size() - 1;
+    while(right == -1 && find_right < 5){
+        find_right++;
+        right = _bucket.bucket_query(x, find_right).size() - 1;
+    }
+    // cout << "left1: " << left << " right1: " << right << endl;
+    if(right != -1){
+        while(left <= right){
+            int mid = (left + right) / 2;
+            // cout << "mid: " << mid << endl;
+            // cout << _bucket.bucket_query(x, find_right).size() <<endl;
+            if(_bucket.bucket_query(x, find_right)[mid]->y() < y){
+                left = mid + 1;
+            }else if(_bucket.bucket_query(x, find_right)[mid]->y() > y){
+                right = mid - 1;
+            }else{
+                index = mid;
+                break;
+            }
             index = mid;
-            break;
         }
-        index = mid;
-    }
-    L.push_back(_bucket.bucket_query(x, 1)[index]);
-    if(index + 1 < _bucket.bucket_query(x, 1).size()){
-        L.push_back(_bucket.bucket_query(x, 1)[index + 1]);
-    }
-    if(index - 1 >= 0){
-        L.push_back(_bucket.bucket_query(x, 1)[index - 1]);
+        // cout <<"hey"<<endl;
+        L.push_back(_bucket.bucket_query(x, find_right)[index]);
+        if(index + 1 < _bucket.bucket_query(x, find_right).size()){
+            L.push_back(_bucket.bucket_query(x, find_right)[index + 1]);
+        }
+        if(index - 1 >= 0){
+            L.push_back(_bucket.bucket_query(x, find_right)[index - 1]);
+        }
     }
 
+    int find_left = -1;
     left = 0;
     right = _bucket.bucket_query(x, -1).size() - 1;
-    while(left <= right){
-        int mid = (left + right) / 2;
-        if(_bucket.bucket_query(x, -1)[mid]->y() < y){
-            left = mid + 1;
-        }else if(_bucket.bucket_query(x, -1)[mid]->y() > y){
-            right = mid - 1;
-        }else{
+    while(right == -1 && find_left > -5){
+        find_left--;
+        right = _bucket.bucket_query(x, find_left).size() - 1;
+    }
+    // cout << "left-1: " << left << " right-1: " << right << endl;
+    if(right != -1){
+        while(left <= right){
+            int mid = (left + right) / 2;
+            if(_bucket.bucket_query(x, find_left)[mid]->y() < y){
+                left = mid + 1;
+            }else if(_bucket.bucket_query(x, find_left)[mid]->y() > y){
+                right = mid - 1;
+            }else{
+                index = mid;
+                break;
+            }
             index = mid;
-            break;
         }
-        index = mid;
-    }
-    L.push_back(_bucket.bucket_query(x, -1)[index]);
-    if(index + 1 < _bucket.bucket_query(x, -1).size()){
-        L.push_back(_bucket.bucket_query(x, -1)[index + 1]);
-    }
-    if(index - 1 >= 0){
-        L.push_back(_bucket.bucket_query(x, -1)[index - 1]);
+        L.push_back(_bucket.bucket_query(x, find_left)[index]);
+        if(index + 1 < _bucket.bucket_query(x, find_left).size()){
+            L.push_back(_bucket.bucket_query(x, find_left)[index + 1]);
+        }
+        if(index - 1 >= 0){
+            L.push_back(_bucket.bucket_query(x, find_left)[index - 1]);
+        }
     }
 
     if(L.size() < k)
@@ -909,6 +939,7 @@ vector<Instance*> MBFFOptimizer::findknear(string InstanceName, int k)
         return dist_a < dist_b;
     });
 
+    // cout <<"k: "<<k<<endl;
     for(int i = 0; i < L.size(); i ++){
         if(i >= k){
             break;
