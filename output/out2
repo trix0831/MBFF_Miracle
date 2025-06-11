@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 CellInst 21005
 Inst new_inst_0_1_0 FF10 1.32867e+06 928800
 Inst new_inst_3_1_1 FF10 1.41645e+06 943200
@@ -84496,3 +84497,5 @@ C108748/CLK map new_inst_42336_1_20673/CLK
 C103925/D map new_inst_42338_1_20674/D
 C103925/Q map new_inst_42338_1_20674/Q
 C103925/CLK map new_inst_42338_1_20674/CLK
+=======
+>>>>>>> ab06a8db97131f35f2b1c08cc72d765fefd67b1a

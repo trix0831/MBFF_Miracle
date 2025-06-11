@@ -50,7 +50,7 @@ public:
   Instance *merge1BitFF(Instance *FF1, int x, int y, int merge_num, int net_count);
   unsigned _instCnt;
   void printPlacement();
-  void algorithm();
+  void algorithm(std::string basename);
   void placement();
   void printWeight();
   void printInput();
