@@ -40,6 +40,7 @@ public:
     _outfile = out_file;
     cell_instance = 0;
     init_occupied();
+    initFFChecker();
     // best1bitff = new CellLibrary("123", "123", 1, 1000000, 1000000, 0);
   }
 
