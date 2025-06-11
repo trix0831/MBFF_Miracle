@@ -255,30 +255,6 @@ void MBFFOptimizer::init_occupied() {
 }
 
 
-void Union(DisSet *b, DisSet *c)
-{
-    if (b->size() >= b->size())
-    {
-        // caculate new point
-        Point2<double> point = Point2<double>((b->getPoint().x * b->size() + c->getPoint().x * c->size()) / (b->size() + c->size()), (b->getPoint().y * b->size() + c->getPoint().y * c->size()) / (b->size() + c->size()));
-        for (auto &ins : c->getInstances())
-        {
-            b->addInstance(ins);
-        }
-        b->setPoint(point);
-        delete (c);
-    }
-    else
-    {
-        Point2<double> point = Point2<double>((b->getPoint().x * b->size() + c->getPoint().x * c->size()) / (b->size() + c->size()), (b->getPoint().y * b->size() + c->getPoint().y * c->size()) / (b->size() + c->size()));
-        for (auto &ins : b->getInstances())
-        {
-            c->addInstance(ins);
-        }
-        c->setPoint(point);
-        delete (b);
-    }
-}
 void MBFFOptimizer::set_best1bitff()
 
 {
@@ -331,104 +307,7 @@ Instance *MBFFOptimizer::merge1BitFF(Instance *FF1, int x, int y, int merge_num,
     return outputFF;
 }
 
-void MBFFOptimizer::placement()
-{
 
-    for (const auto &[key, instance] : _name2pInstances_ff) // FF placed, -1000 for weight
-    {
-        Point2<double> LEFTBOTTOM = Point2<double>(instance->x(), instance->y());
-        Point2<double> RIGHTTOP = Point2<double>(instance->x() + instance->pCellLibrary()->width(), instance->y() + instance->pCellLibrary()->height());
-        for (const auto &PlacementRow : _pPlacementRows)
-        {
-
-            if (PlacementRow->x() <= LEFTBOTTOM.x && RIGHTTOP.y > PlacementRow->y())
-            {
-                for (unsigned i = 0; i < PlacementRow->numSites(); i++)
-                {
-                    if (!(PlacementRow->x() + i * PlacementRow->width() > RIGHTTOP.x &&
-                          PlacementRow->x() + (i + 1) * PlacementRow->width() > RIGHTTOP.x) &&
-                        ((PlacementRow->x() + i * PlacementRow->width() >= LEFTBOTTOM.x &&
-                          PlacementRow->x() + (i + 1) * PlacementRow->width() <= RIGHTTOP.x) ||
-                         (PlacementRow->x() + i * PlacementRow->width() < RIGHTTOP.x &&
-                          PlacementRow->x() + (i + 1) * PlacementRow->width() >= RIGHTTOP.x)))
-                    {
-                        // cout << i;
-                        PlacementRow->setWeight(i, 0); // Flipflop weight placed
-                        PlacementRow->Place(i);
-                    }
-                }
-            }
-        }
-    }
-    for (const auto &[key, instance] : _name2pInstances_gate) // Gate placed, -100000 for weight
-    {
-        Point2<double> LEFTBOTTOM = Point2<double>(instance->x(), instance->y());
-        Point2<double> RIGHTTOP = Point2<double>(instance->x() + instance->pCellLibrary()->width(), instance->y() + instance->pCellLibrary()->height());
-        for (const auto &PlacementRow : _pPlacementRows)
-        {
-            if (PlacementRow->x() <= LEFTBOTTOM.x && RIGHTTOP.y > PlacementRow->y())
-            {
-                for (unsigned i = 0; i < PlacementRow->numSites(); i++)
-                {
-                    if (!(PlacementRow->x() + i * PlacementRow->width() > RIGHTTOP.x &&
-                          PlacementRow->x() + (i + 1) * PlacementRow->width() > RIGHTTOP.x) &&
-                        ((PlacementRow->x() + i * PlacementRow->width() >= LEFTBOTTOM.x &&
-                          PlacementRow->x() + (i + 1) * PlacementRow->width() <= RIGHTTOP.x) ||
-                         (PlacementRow->x() + i * PlacementRow->width() < RIGHTTOP.x &&
-                          PlacementRow->x() + (i + 1) * PlacementRow->width() >= RIGHTTOP.x)))
-                    {
-                        PlacementRow->setWeight(i, -100000);
-                        PlacementRow->Place(i);
-                    }
-                }
-            }
-        }
-    }
-}
-void MBFFOptimizer::printPlacement()
-{
-    for (const auto &PlacementRow : _pPlacementRows)
-    {
-        cout << "PlacementRow: " << PlacementRow->x() << " " << PlacementRow->y() << " " << PlacementRow->width() << " " << PlacementRow->height() << " " << PlacementRow->numSites() << endl;
-        for (unsigned i = 0; i < PlacementRow->numSites(); i++)
-        {
-            // cout << i << "lattice:" << PlacementRow->isPlaced(i) << " ";
-            cout << PlacementRow->isPlaced(i) << " ";
-        }
-        cout << endl;
-    }
-}
-void MBFFOptimizer ::printWeight()
-{
-    for (const auto &PlacementRow : _pPlacementRows)
-    {
-        cout << "PlacementRow: " << PlacementRow->x() << " " << PlacementRow->y() << " " << PlacementRow->width() << " " << PlacementRow->height() << " " << PlacementRow->numSites() << endl;
-        for (unsigned i = 0; i < PlacementRow->numSites(); i++)
-        {
-            // cout << i << "lattice:" << PlacementRow->isPlaced(i) << " ";
-            cout << PlacementRow->weight(i) << " ";
-        }
-        cout << endl;
-    }
-    cout << "Finish printWeight\n";
-}
-void MBFFOptimizer::printCliqueGraph(Graph *graph)
-{
-    for (auto &vertex : graph->vertex())
-    {
-        cout << vertex->name() << " ";
-    }
-    cout << graph->adj().size() << endl;
-    for (auto &[key, value] : graph->adj())
-    {
-        cout << key->name() << " ";
-        for (auto &vertex : value)
-        {
-            cout << vertex->name() << " ";
-        }
-        cout << endl;
-    }
-}
 
 void MBFFOptimizer::PrintOutfile(fstream &outfile)
 {
@@ -496,17 +375,17 @@ void MBFFOptimizer::Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fs
 
         if (!found) break;
 
-        if (Sets->at(elem1)->getInstances()[0]->name2pPins()["D"]->timingSlack() > 0)
+        if (Sets->at(elem1)->getInstances()->totalTimingSlack() > 0) //if the selected FF has positive slack, find another one to merge
         {
-            for (unsigned j = elem1 + 1; j < Sets->size(); j++)
+            for (unsigned j = elem1 + 1; j < Sets->size(); j++) 
             {
                 if ((j < Sets->size()) &&
-                    (Sets->at(j)->getInstances()[0]->name2pPins()["D"]->timingSlack() > 0) &&
+                    (Sets->at(j)->getInstances()->totalTimingSlack() > 0) &&
                     (!(*visited)[j]) &&
                     ((abs(Sets->at(elem1)->getPoint().x - Sets->at(j)->getPoint().x) +
                       abs(Sets->at(elem1)->getPoint().y - Sets->at(j)->getPoint().y)) <
-                     ((Sets->at(elem1)->getInstances()[0]->name2pPins()["D"]->timingSlack() +
-                       Sets->at(j)->getInstances()[0]->name2pPins()["D"]->timingSlack()) / _displacementDelay)))
+                     ((Sets->at(elem1)->getInstances()->totalTimingSlack() +
+                       Sets->at(j)->getInstances()->totalTimingSlack()) / _displacementDelay)))
                 {
                     count++;
                     flag = true;
@@ -521,20 +400,20 @@ void MBFFOptimizer::Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fs
         {
             // One FF only (1-bit)
             Instance *instance;
-            int x = Sets->at(elem1)->getInstances()[0]->x();
-            int y = Sets->at(elem1)->getInstances()[0]->y();
+            int x = Sets->at(elem1)->getInstances()->x();
+            int y = Sets->at(elem1)->getInstances()->y();
             string name = "new_inst_" + to_string(_instCnt++) + "_" + to_string(net_count) + "_" + to_string(merge_num);
-            instance = merge1BitFF(Sets->at(elem1)->getInstances()[0], x, y, merge_num, net_count);
+            instance = merge1BitFF(Sets->at(elem1)->getInstances(), x, y, merge_num, net_count);
             instance->setName(name);  // Set the new name for the instance
             merge_success = placeLegal(instance, Point2<int>(floor((y - _pPlacementRows[0]->y()) / _pPlacementRows[0]->height()),
                                                         floor((x - _pPlacementRows[0]->x()) / _pPlacementRows[0]->width())));
 
             if(merge_success){
                 _mergedInstances.push_back(instance);
-                Sets->at(elem1)->getInstances()[0]->merged = true; // Mark the instance as merged
-                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/D map " + instance->name() + "/D");
-                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/Q map " + instance->name() + "/Q");
-                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/CLK map " + instance->name() + "/CLK");
+                Sets->at(elem1)->getInstances()->merged = true; // Mark the instance as merged
+                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()->name() + "/D map " + instance->name() + "/D");
+                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()->name() + "/Q map " + instance->name() + "/Q");
+                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()->name() + "/CLK map " + instance->name() + "/CLK");
 
                 cell_instance++;
             }
@@ -543,18 +422,18 @@ void MBFFOptimizer::Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fs
         {
             // Try to merge FF1 and FF2 (2-bit)
             Instance *instance;
-            double x = (Sets->at(elem1)->getInstances()[0]->name2pPins()["D"]->x() * Sets->at(elem2)->getInstances()[0]->name2pPins()["D"]->timingSlack() +
-                        Sets->at(elem2)->getInstances()[0]->name2pPins()["D"]->x() * Sets->at(elem1)->getInstances()[0]->name2pPins()["D"]->timingSlack()) /
-                       (Sets->at(elem1)->getInstances()[0]->name2pPins()["D"]->timingSlack() + Sets->at(elem2)->getInstances()[0]->name2pPins()["D"]->timingSlack());
+            double x = (Sets->at(elem1)->getInstances()->x() * Sets->at(elem2)->getInstances()->totalTimingSlack() +
+                        Sets->at(elem2)->getInstances()->x() * Sets->at(elem1)->getInstances()->totalTimingSlack()) /
+                       (Sets->at(elem1)->getInstances()->totalTimingSlack() + Sets->at(elem2)->getInstances()->totalTimingSlack());
 
-            double y = (Sets->at(elem1)->getInstances()[0]->name2pPins()["D"]->y() * Sets->at(elem2)->getInstances()[0]->name2pPins()["D"]->timingSlack() +
-                        Sets->at(elem2)->getInstances()[0]->name2pPins()["D"]->y() * Sets->at(elem1)->getInstances()[0]->name2pPins()["D"]->timingSlack()) /
-                       (Sets->at(elem1)->getInstances()[0]->name2pPins()["D"]->timingSlack() + Sets->at(elem2)->getInstances()[0]->name2pPins()["D"]->timingSlack());
+            double y = (Sets->at(elem1)->getInstances()->y() * Sets->at(elem2)->getInstances()->totalTimingSlack() +
+                        Sets->at(elem2)->getInstances()->y() * Sets->at(elem1)->getInstances()->totalTimingSlack()) /
+                       (Sets->at(elem1)->getInstances()->totalTimingSlack() + Sets->at(elem2)->getInstances()->totalTimingSlack());
 
             int row = floor((y - _pPlacementRows[0]->y()) / (_pPlacementRows[0]->height()));
             int index = floor((x - _pPlacementRows[0]->x()) / (_pPlacementRows[0]->width()));
 
-            instance = merge2BitFF(Sets->at(elem1)->getInstances()[0], Sets->at(elem2)->getInstances()[0], row, index, merge_num, net_count);
+            instance = merge2BitFF(Sets->at(elem1)->getInstances(), Sets->at(elem2)->getInstances(), row, index, merge_num, net_count);
 
             if (instance)
             {
@@ -564,14 +443,14 @@ void MBFFOptimizer::Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fs
                                                         floor((x - _pPlacementRows[0]->x()) / _pPlacementRows[0]->width())));
                 if (merge_success){
                     _mergedInstances.push_back(instance);
-                    Sets->at(elem1)->getInstances()[0]->merged = true; // Mark the instance as merged
-                    Sets->at(elem2)->getInstances()[0]->merged = true; // Mark the instance as merged
-                    _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/D map " + instance->name() + "/D0");
-                    _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/Q map " + instance->name() + "/Q0");
-                    _pinMappings.emplace_back(Sets->at(elem2)->getInstances()[0]->name() + "/D map " + instance->name() + "/D1");
-                    _pinMappings.emplace_back(Sets->at(elem2)->getInstances()[0]->name() + "/Q map " + instance->name() + "/Q1");
-                    _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/CLK map " + instance->name() + "/CLK");
-                    _pinMappings.emplace_back(Sets->at(elem2)->getInstances()[0]->name() + "/CLK map " + instance->name() + "/CLK");
+                    Sets->at(elem1)->getInstances()->merged = true; // Mark the instance as merged
+                    Sets->at(elem2)->getInstances()->merged = true; // Mark the instance as merged
+                    _pinMappings.emplace_back(Sets->at(elem1)->getInstances()->name() + "/D map " + instance->name() + "/D0");
+                    _pinMappings.emplace_back(Sets->at(elem1)->getInstances()->name() + "/Q map " + instance->name() + "/Q0");
+                    _pinMappings.emplace_back(Sets->at(elem2)->getInstances()->name() + "/D map " + instance->name() + "/D1");
+                    _pinMappings.emplace_back(Sets->at(elem2)->getInstances()->name() + "/Q map " + instance->name() + "/Q1");
+                    _pinMappings.emplace_back(Sets->at(elem1)->getInstances()->name() + "/CLK map " + instance->name() + "/CLK");
+                    _pinMappings.emplace_back(Sets->at(elem2)->getInstances()->name() + "/CLK map " + instance->name() + "/CLK");
 
                     cell_instance++;
                 }
@@ -579,32 +458,32 @@ void MBFFOptimizer::Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fs
             else
             {
                 // Fallback to 2 × 1-bit FFs
-                int x1 = Sets->at(elem1)->getInstances()[0]->x();
-                int y1 = Sets->at(elem1)->getInstances()[0]->y();
+                int x1 = Sets->at(elem1)->getInstances()->x();
+                int y1 = Sets->at(elem1)->getInstances()->y();
                 string name1 = "new_inst_" + to_string(_instCnt++) + "_" + to_string(net_count) + "_" + to_string(merge_num);
-                Instance *inst1 = merge1BitFF(Sets->at(elem1)->getInstances()[0], x1, y1, merge_num, net_count);
+                Instance *inst1 = merge1BitFF(Sets->at(elem1)->getInstances(), x1, y1, merge_num, net_count);
                 inst1->setName(name1);  // Set the new name for the instance
                 placeLegal(inst1, Point2<int>(floor((y1 - _pPlacementRows[0]->y()) / _pPlacementRows[0]->height()),
                                                         floor((x1 - _pPlacementRows[0]->x()) / _pPlacementRows[0]->width())));
                 _mergedInstances.push_back(inst1);
-                Sets->at(elem1)->getInstances()[0]->merged = true; // Mark the instance as merged
-                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/D map " + inst1->name() + "/D");
-                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/Q map " + inst1->name() + "/Q");
-                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/CLK map " + inst1->name() + "/CLK");
+                Sets->at(elem1)->getInstances()->merged = true; // Mark the instance as merged
+                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()->name() + "/D map " + inst1->name() + "/D");
+                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()->name() + "/Q map " + inst1->name() + "/Q");
+                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()->name() + "/CLK map " + inst1->name() + "/CLK");
                 cell_instance++;
 
-                int x2 = Sets->at(elem2)->getInstances()[0]->x();
-                int y2 = Sets->at(elem2)->getInstances()[0]->y();
+                int x2 = Sets->at(elem2)->getInstances()->x();
+                int y2 = Sets->at(elem2)->getInstances()->y();
                 string name2 = "new_inst_" + to_string(_instCnt++) + "_" + to_string(net_count) + "_" + to_string(merge_num + 1);
-                Instance *inst2 = merge1BitFF(Sets->at(elem2)->getInstances()[0], x2, y2, merge_num + 1, net_count);
+                Instance *inst2 = merge1BitFF(Sets->at(elem2)->getInstances(), x2, y2, merge_num + 1, net_count);
                 inst2->setName(name2);  // Set the new name for the instance
                 placeLegal(inst2, Point2<int>(floor((y2 - _pPlacementRows[0]->y()) / _pPlacementRows[0]->height()),
                                                         floor((x2 - _pPlacementRows[0]->x()) / _pPlacementRows[0]->width())));
                 _mergedInstances.push_back(inst2);
-                Sets->at(elem2)->getInstances()[0]->merged = true; // Mark the instance as merged
-                _pinMappings.emplace_back(Sets->at(elem2)->getInstances()[0]->name() + "/D map " + inst2->name() + "/D");
-                _pinMappings.emplace_back(Sets->at(elem2)->getInstances()[0]->name() + "/Q map " + inst2->name() + "/Q");
-                _pinMappings.emplace_back(Sets->at(elem2)->getInstances()[0]->name() + "/CLK map " + inst2->name() + "/CLK");
+                Sets->at(elem2)->getInstances()->merged = true; // Mark the instance as merged
+                _pinMappings.emplace_back(Sets->at(elem2)->getInstances()->name() + "/D map " + inst2->name() + "/D");
+                _pinMappings.emplace_back(Sets->at(elem2)->getInstances()->name() + "/Q map " + inst2->name() + "/Q");
+                _pinMappings.emplace_back(Sets->at(elem2)->getInstances()->name() + "/CLK map " + inst2->name() + "/CLK");
                 cell_instance++;
             }
         }
@@ -613,10 +492,6 @@ void MBFFOptimizer::Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fs
     }
 }
 
-bool sort_alg(CellLibrary *a, CellLibrary *b)
-{
-    return a->width() * (a->height()) < b->width() * (b->height());
-}
 
 void MBFFOptimizer::findFeasable_reg(Net *net, fstream &outfile, int net_count)
 {
@@ -626,11 +501,8 @@ void MBFFOptimizer::findFeasable_reg(Net *net, fstream &outfile, int net_count)
     // First, collect all FFs in this net
     for (unsigned i = 1; i < net->numPins(); i++)
     {
-        if (net->pPins()[i].pin->getinstance())
-        {
-            DisSet *set = new DisSet(net->pPins()[i].pin->getinstance(), net->pPins()[i].pin->x(), net->pPins()[i].pin->y());
-            Sets->push_back(set);
-        }
+        DisSet *set = new DisSet(net->pPins()[i].pin->getinstance(), net->pPins()[i].pin->x(), net->pPins()[i].pin->y());
+        Sets->push_back(set);
     }
 
     // Process FFs that can be merged
@@ -643,20 +515,20 @@ void MBFFOptimizer::findFeasable_reg(Net *net, fstream &outfile, int net_count)
         {
             // This is a lonely FF that wasn't merged
             Instance *instance;
-            int x = Sets->at(i)->getInstances()[0]->x();
-            int y = Sets->at(i)->getInstances()[0]->y();
+            int x = Sets->at(i)->getInstances()->x();
+            int y = Sets->at(i)->getInstances()->y();
             string name = "new_inst_" + to_string(_instCnt++) + "_" + to_string(net_count) + "_lonely_" + to_string(i);
             
-            instance = merge1BitFF(Sets->at(i)->getInstances()[0], x, y, i, net_count);
+            instance = merge1BitFF(Sets->at(i)->getInstances(), x, y, i, net_count);
             instance->setName(name);
             placeLegal(instance, Point2<int>(floor((y - _pPlacementRows[0]->y()) / _pPlacementRows[0]->height()),
                                                         floor((x - _pPlacementRows[0]->x()) / _pPlacementRows[0]->width())));
 
             _mergedInstances.push_back(instance);
-            Sets->at(i)->getInstances()[0]->merged = true; // Mark the instance as merged
-            _pinMappings.emplace_back(Sets->at(i)->getInstances()[0]->name() + "/D map " + instance->name() + "/D");
-            _pinMappings.emplace_back(Sets->at(i)->getInstances()[0]->name() + "/Q map " + instance->name() + "/Q");
-            _pinMappings.emplace_back(Sets->at(i)->getInstances()[0]->name() + "/CLK map " + instance->name() + "/CLK");
+            Sets->at(i)->getInstances()->merged = true; // Mark the instance as merged
+            _pinMappings.emplace_back(Sets->at(i)->getInstances()->name() + "/D map " + instance->name() + "/D");
+            _pinMappings.emplace_back(Sets->at(i)->getInstances()->name() + "/Q map " + instance->name() + "/Q");
+            _pinMappings.emplace_back(Sets->at(i)->getInstances()->name() + "/CLK map " + instance->name() + "/CLK");
             
             cell_instance++;
         }
@@ -671,17 +543,6 @@ void MBFFOptimizer::findFeasable_reg(Net *net, fstream &outfile, int net_count)
     delete visited;
 }
 
-void MBFFOptimizer::print_weight_matrix(vector<vector<double> *> *weight_matrix)
-{
-    for (unsigned int i = 0; i < weight_matrix->size(); i++)
-    {
-        for (unsigned int j = 0; j < weight_matrix->at(i)->size(); j++)
-        {
-            cout << weight_matrix->at(i)->at(j) << " ";
-        }
-        cout << endl;
-    }
-}
 void MBFFOptimizer::algorithm(std::string baseName)
 {
     fstream outfile; // open file in write mode
@@ -732,7 +593,7 @@ void MBFFOptimizer::algorithm(std::string baseName)
             // cout << "pass " << net->name() << endl;
             continue;
         }
-        else if (all_clk && net->numPins() > 1) // find feasable region on net [1:]
+        else if (all_clk && net->numPins() > 1) // run merging algorithm
         {
             // cout << "123\n";
             net_count++;
@@ -874,11 +735,11 @@ Instance *MBFFOptimizer::merge2BitFF(Instance *FF1, Instance *FF2, int x, int y,
     int placement_X; // output placement points
     int placement_Y;
 
-    int q1_x = FF1->name2pPins()["D"]->x();
-    int q1_y = FF1->name2pPins()["D"]->y();
+    int q1_x = FF1->x();
+    int q1_y = FF1->y();
 
-    int q2_x = FF2->name2pPins()["D"]->x();
-    int q2_y = FF2->name2pPins()["D"]->y();
+    int q2_x = FF2->x();
+    int q2_y = FF2->y();
     // cout << x << " " << y << endl;
     // output Flipflop
     string name = "new_inst_" + to_string(_instCnt++) + "_" + to_string(net_count) + "_" + to_string(merge_num);
@@ -903,8 +764,8 @@ Instance *MBFFOptimizer::merge2BitFF(Instance *FF1, Instance *FF2, int x, int y,
             double manhatten_distance_2 = abs(q2_x - _pPlacementRows[0]->x() - placement_X * _pPlacementRows[0]->width()) + abs(q2_y - _pPlacementRows[0]->y() - placement_Y * _pPlacementRows[0]->height());
 
             //  2. calculate if slack is still positive
-            double slack1 = FF1->name2pPins()["D"]->timingSlack() - manhatten_distance_1 * _displacementDelay;
-            double slack2 = FF2->name2pPins()["D"]->timingSlack() - manhatten_distance_1 * _displacementDelay;
+            double slack1 = FF1->totalTimingSlack() - manhatten_distance_1 * _displacementDelay;
+            double slack2 = FF2->totalTimingSlack() - manhatten_distance_1 * _displacementDelay;
 
             if ((slack1 > 0) and (slack2 > 0))
             {
@@ -950,44 +811,4 @@ Instance *MBFFOptimizer::merge2BitFF(Instance *FF1, Instance *FF2, int x, int y,
         }
     }
     return outputFF;
-}
-Point2<int> MBFFOptimizer::find_legal_position(int row, int col)
-{
-    int row_index = row;
-    int col_index = col;
-    std::queue<Point2<int>> toVisit;
-    // std::set<Point2<int>> visited;
-    unordered_map<Point2<int>, bool, PointHash<int>> visited;
-
-    toVisit.push(Point2<int>(row_index, col_index));
-
-    while (!toVisit.empty())
-    {
-        Point2<int> current = toVisit.front();
-        toVisit.pop();
-
-        if (visited.find(current) != visited.end())
-        { // check if current is already visited
-            continue;
-        }
-        visited.insert({current, true}); // mark current as visited
-
-        if (!_pPlacementRows[current.x]->isoccupied(current.y))
-        {
-            return current;
-        }
-
-        std::vector<Point2<int>> neighbors = {
-            {current.x + 1, current.y}, {current.x - 1, current.y}, {current.x, current.y + 1}, {current.x, current.y - 1}};
-
-        for (const auto &neighbor : neighbors)
-        {
-            if (neighbor.x >= 0 && neighbor.x < _pPlacementRows.size() && neighbor.y >= 0 && neighbor.y < _pPlacementRows[0]->numSites() && visited.find(neighbor) == visited.end())
-            {
-                toVisit.push(neighbor);
-            }
-        }
-    }
-    cout << "no legal position found\n";
-    return Point2<int>(-1, -1);
 }

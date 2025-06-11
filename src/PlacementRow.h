@@ -22,7 +22,6 @@ public:
   double width() { return _width; }
   double height() { return _height; }
   unsigned numSites() { return _numSites; }
-  vector<bool> placement() { return _placement; }
   bool isPlaced(unsigned putSites)
   {
     return _placement[putSites];
