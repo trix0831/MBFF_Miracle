@@ -11,7 +11,7 @@ class CellLibrary
 {
 public:
   CellLibrary(string type = "", string name = "", unsigned numBits = -1, double width = -1, double height = -1, unsigned numPins = -1, double qPinDelay = -1, double gatePower = -1)
-      : _type(type), _name(name),  _numBits(numBits), _width(width), _height(height), _numPins(numPins), _qPinDelay(qPinDelay), _gatePower(gatePower)
+      : _type(type), _name(name), _numBits(numBits), _width(width), _height(height), _numPins(numPins), _qPinDelay(qPinDelay), _gatePower(gatePower)
   {
   }
 
@@ -47,7 +47,6 @@ public:
   void setGatePower(double gatePower) { _gatePower = gatePower; }
 
 private:
-
   string _type; // cell type ff or comb
   string _name; // cell name
   unsigned _numBits;
