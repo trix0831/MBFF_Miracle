@@ -328,8 +328,18 @@ void MBFFOptimizer::PrintOutfile(fstream &outfile)
             _mergedInstances.push_back(inst);
 
             // if you need pin-mapping lines, do it here:
-            _pinMappings.emplace_back(origName + "/D map " + newName + "/D");
-            _pinMappings.emplace_back(origName + "/Q map " + newName + "/Q");
+            int bitWidth = inst->pCellLibrary()->numBits();
+
+            // Map D and Q pins (e.g., D, D0~D3)
+            for (int i = 0; i < bitWidth; ++i) {
+                std::string dName = (bitWidth == 1) ? "D"  : "D" + std::to_string(i);
+                std::string qName = (bitWidth == 1) ? "Q"  : "Q" + std::to_string(i);
+
+                _pinMappings.emplace_back(origName + "/" + dName + " map " + newName + "/" + dName);
+                _pinMappings.emplace_back(origName + "/" + qName + " map " + newName + "/" + qName);
+            }
+
+            // Always map CLK
             _pinMappings.emplace_back(origName + "/CLK map " + newName + "/CLK");
         }
     }
@@ -385,7 +395,9 @@ void MBFFOptimizer::Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fs
                     ((abs(Sets->at(elem1)->getPoint().x - Sets->at(j)->getPoint().x) +
                       abs(Sets->at(elem1)->getPoint().y - Sets->at(j)->getPoint().y)) <
                      ((Sets->at(elem1)->getInstances()->totalTimingSlack() +
-                       Sets->at(j)->getInstances()->totalTimingSlack()) / _displacementDelay)))
+                       Sets->at(j)->getInstances()->totalTimingSlack()) / _displacementDelay)) &&
+                    (Sets->at(elem1)->getInstances()->pCellLibrary()->numBits() == Sets->at(j)->getInstances()->pCellLibrary()->numBits())
+                    )
                 {
                     count++;
                     flag = true;
@@ -396,24 +408,36 @@ void MBFFOptimizer::Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fs
             }
         }
 
-        if (!flag)
+        if (!flag) //no suitable
         {
             // One FF only (1-bit)
-            Instance *instance;
-            int x = Sets->at(elem1)->getInstances()->x();
-            int y = Sets->at(elem1)->getInstances()->y();
             string name = "new_inst_" + to_string(_instCnt++) + "_" + to_string(net_count) + "_" + to_string(merge_num);
-            instance = merge1BitFF(Sets->at(elem1)->getInstances(), x, y, merge_num, net_count);
-            instance->setName(name);  // Set the new name for the instance
-            merge_success = placeLegal(instance, Point2<int>(floor((y - _pPlacementRows[0]->y()) / _pPlacementRows[0]->height()),
-                                                        floor((x - _pPlacementRows[0]->x()) / _pPlacementRows[0]->width())));
+            Instance *inst = new Instance(name, Sets->at(elem1)->getInstances()->pCellLibrary(),
+                                              Sets->at(elem1)->getInstances()->x(),
+                                              Sets->at(elem1)->getInstances()->y(), Sets->at(elem1)->getInstances()->numPins());
+            merge_success = placeLegal(inst, Point2<int>(floor((inst->y() - _pPlacementRows[0]->y()) / _pPlacementRows[0]->height()),
+                                                        floor((inst->x() - _pPlacementRows[0]->x()) / _pPlacementRows[0]->width())));
 
             if(merge_success){
-                _mergedInstances.push_back(instance);
+                _mergedInstances.push_back(inst);
                 Sets->at(elem1)->getInstances()->merged = true; // Mark the instance as merged
-                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()->name() + "/D map " + instance->name() + "/D");
-                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()->name() + "/Q map " + instance->name() + "/Q");
-                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()->name() + "/CLK map " + instance->name() + "/CLK");
+
+                std::string origName = Sets->at(elem1)->getInstances()->name();
+                std::string newName  = inst->name();
+                int bitWidth = inst->pCellLibrary()->numBits();
+
+                // Map D and Q pins
+                for (int i = 0; i < bitWidth; ++i) {
+                    std::string dName = (bitWidth == 1) ? "D" : "D" + std::to_string(i);
+                    std::string qName = (bitWidth == 1) ? "Q" : "Q" + std::to_string(i);
+
+                    _pinMappings.emplace_back(origName + "/" + dName + " map " + newName + "/" + dName);
+                    _pinMappings.emplace_back(origName + "/" + qName + " map " + newName + "/" + qName);
+                }
+
+                // Always map CLK
+                _pinMappings.emplace_back(origName + "/CLK map " + newName + "/CLK");
+
 
                 cell_instance++;
             }
@@ -433,58 +457,96 @@ void MBFFOptimizer::Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fs
             int row = floor((y - _pPlacementRows[0]->y()) / (_pPlacementRows[0]->height()));
             int index = floor((x - _pPlacementRows[0]->x()) / (_pPlacementRows[0]->width()));
 
-            instance = merge2BitFF(Sets->at(elem1)->getInstances(), Sets->at(elem2)->getInstances(), row, index, merge_num, net_count);
+            instance = merge2FF(Sets->at(elem1)->getInstances(), Sets->at(elem2)->getInstances(), row, index, merge_num, net_count);
 
-            if (instance)
-            {
-                string name = "new_inst_" + to_string(_instCnt++) + "_" + to_string(net_count) + "_" + to_string(merge_num);
+            if (instance) {
+                std::string name = "new_inst_" + std::to_string(_instCnt++) + "_" + std::to_string(net_count) + "_" + std::to_string(merge_num);
                 instance->setName(name);  // Set the new name for the instance
-                merge_success = placeLegal(instance, Point2<int>(floor((y - _pPlacementRows[0]->y()) / _pPlacementRows[0]->height()),
-                                                        floor((x - _pPlacementRows[0]->x()) / _pPlacementRows[0]->width())));
-                if (merge_success){
+
+                merge_success = placeLegal(instance, Point2<int>(
+                    floor((y - _pPlacementRows[0]->y()) / _pPlacementRows[0]->height()),
+                    floor((x - _pPlacementRows[0]->x()) / _pPlacementRows[0]->width()))
+                );
+
+                if (merge_success) {
                     _mergedInstances.push_back(instance);
-                    Sets->at(elem1)->getInstances()->merged = true; // Mark the instance as merged
-                    Sets->at(elem2)->getInstances()->merged = true; // Mark the instance as merged
-                    _pinMappings.emplace_back(Sets->at(elem1)->getInstances()->name() + "/D map " + instance->name() + "/D0");
-                    _pinMappings.emplace_back(Sets->at(elem1)->getInstances()->name() + "/Q map " + instance->name() + "/Q0");
-                    _pinMappings.emplace_back(Sets->at(elem2)->getInstances()->name() + "/D map " + instance->name() + "/D1");
-                    _pinMappings.emplace_back(Sets->at(elem2)->getInstances()->name() + "/Q map " + instance->name() + "/Q1");
-                    _pinMappings.emplace_back(Sets->at(elem1)->getInstances()->name() + "/CLK map " + instance->name() + "/CLK");
-                    _pinMappings.emplace_back(Sets->at(elem2)->getInstances()->name() + "/CLK map " + instance->name() + "/CLK");
+
+                    auto* inst1 = Sets->at(elem1)->getInstances();
+                    auto* inst2 = Sets->at(elem2)->getInstances();
+                    inst1->merged = true;
+                    inst2->merged = true;
+
+                    // Generate pin mappings for all data bits
+                    int bitCount = instance->pCellLibrary()->numBits();
+                    for (int i = 0; i < bitCount; ++i) {
+                        std::string dPin = "D" + std::to_string(i);
+                        std::string qPin = "Q" + std::to_string(i);
+                        std::string origD, origQ, origCLK;
+
+                        if (i == 0) {
+                            origD = inst1->name() + "/D";
+                            origQ = inst1->name() + "/Q";
+                            origCLK = inst1->name() + "/CLK";
+                        } else if (i == 1) {
+                            origD = inst2->name() + "/D";
+                            origQ = inst2->name() + "/Q";
+                            origCLK = inst2->name() + "/CLK";
+                        } else {
+                            // Optional: handle >2 FFs merged if merge2FF is extended
+                            continue;
+                        }
+
+                        _pinMappings.emplace_back(origD + " map " + instance->name() + "/" + dPin);
+                        _pinMappings.emplace_back(origQ + " map " + instance->name() + "/" + qPin);
+                        _pinMappings.emplace_back(origCLK + " map " + instance->name() + "/CLK");
+                    }
 
                     cell_instance++;
                 }
-            }
-            else
-            {
-                // Fallback to 2 × 1-bit FFs
-                int x1 = Sets->at(elem1)->getInstances()->x();
-                int y1 = Sets->at(elem1)->getInstances()->y();
-                string name1 = "new_inst_" + to_string(_instCnt++) + "_" + to_string(net_count) + "_" + to_string(merge_num);
-                Instance *inst1 = merge1BitFF(Sets->at(elem1)->getInstances(), x1, y1, merge_num, net_count);
-                inst1->setName(name1);  // Set the new name for the instance
-                placeLegal(inst1, Point2<int>(floor((y1 - _pPlacementRows[0]->y()) / _pPlacementRows[0]->height()),
-                                                        floor((x1 - _pPlacementRows[0]->x()) / _pPlacementRows[0]->width())));
-                _mergedInstances.push_back(inst1);
-                Sets->at(elem1)->getInstances()->merged = true; // Mark the instance as merged
-                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()->name() + "/D map " + inst1->name() + "/D");
-                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()->name() + "/Q map " + inst1->name() + "/Q");
-                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()->name() + "/CLK map " + inst1->name() + "/CLK");
-                cell_instance++;
+            }else{
+                // ── Fallback to 2 × 1-bit FFs ──────────────────────────────────────────────
+                for (int i = 0; i < 2; ++i) {
+                    int elem     = (i == 0) ? elem1 : elem2;
+                    int mergeId  = merge_num + i;
+                    auto* orig   = Sets->at(elem)->getInstances();
+                    int x        = orig->x();
+                    int y        = orig->y();
 
-                int x2 = Sets->at(elem2)->getInstances()->x();
-                int y2 = Sets->at(elem2)->getInstances()->y();
-                string name2 = "new_inst_" + to_string(_instCnt++) + "_" + to_string(net_count) + "_" + to_string(merge_num + 1);
-                Instance *inst2 = merge1BitFF(Sets->at(elem2)->getInstances(), x2, y2, merge_num + 1, net_count);
-                inst2->setName(name2);  // Set the new name for the instance
-                placeLegal(inst2, Point2<int>(floor((y2 - _pPlacementRows[0]->y()) / _pPlacementRows[0]->height()),
-                                                        floor((x2 - _pPlacementRows[0]->x()) / _pPlacementRows[0]->width())));
-                _mergedInstances.push_back(inst2);
-                Sets->at(elem2)->getInstances()->merged = true; // Mark the instance as merged
-                _pinMappings.emplace_back(Sets->at(elem2)->getInstances()->name() + "/D map " + inst2->name() + "/D");
-                _pinMappings.emplace_back(Sets->at(elem2)->getInstances()->name() + "/Q map " + inst2->name() + "/Q");
-                _pinMappings.emplace_back(Sets->at(elem2)->getInstances()->name() + "/CLK map " + inst2->name() + "/CLK");
-                cell_instance++;
+                    std::string name = "new_inst_" + std::to_string(_instCnt++) + "_" +
+                                    std::to_string(net_count) + "_" + std::to_string(mergeId);
+
+                    Instance* inst = new Instance(
+                        name,
+                        orig->pCellLibrary(),
+                        x,
+                        y,
+                        orig->numPins()
+                    );
+
+                    bool placed = placeLegal(inst, Point2<int>(
+                        std::floor((y - _pPlacementRows[0]->y()) / _pPlacementRows[0]->height()),
+                        std::floor((x - _pPlacementRows[0]->x()) / _pPlacementRows[0]->width())
+                    ));
+
+                    if (placed) {
+                        _mergedInstances.push_back(inst);
+                        orig->merged = true;
+
+                        std::string origName = orig->name();
+                        std::string newName  = inst->name();
+                        int bitWidth         = inst->pCellLibrary()->numBits();
+
+                        for (int b = 0; b < bitWidth; ++b) {
+                            std::string d = (bitWidth == 1) ? "D"  : "D"  + std::to_string(b);
+                            std::string q = (bitWidth == 1) ? "Q"  : "Q"  + std::to_string(b);
+                            _pinMappings.emplace_back(origName + "/" + d + " map " + newName + "/" + d);
+                            _pinMappings.emplace_back(origName + "/" + q + " map " + newName + "/" + q);
+                        }
+                        _pinMappings.emplace_back(origName + "/CLK map " + newName + "/CLK");
+
+                        cell_instance++;
+                    }
+                }
             }
         }
 
@@ -507,32 +569,6 @@ void MBFFOptimizer::findFeasable_reg(Net *net, fstream &outfile, int net_count)
 
     // Process FFs that can be merged
     Synthesize(Sets, visited, outfile, net_count);
-
-    // Handle lonely FFs (those that weren't merged)
-    for (unsigned i = 0; i < Sets->size(); i++)
-    {
-        if (!(*visited)[i])
-        {
-            // This is a lonely FF that wasn't merged
-            Instance *instance;
-            int x = Sets->at(i)->getInstances()->x();
-            int y = Sets->at(i)->getInstances()->y();
-            string name = "new_inst_" + to_string(_instCnt++) + "_" + to_string(net_count) + "_lonely_" + to_string(i);
-            
-            instance = merge1BitFF(Sets->at(i)->getInstances(), x, y, i, net_count);
-            instance->setName(name);
-            placeLegal(instance, Point2<int>(floor((y - _pPlacementRows[0]->y()) / _pPlacementRows[0]->height()),
-                                                        floor((x - _pPlacementRows[0]->x()) / _pPlacementRows[0]->width())));
-
-            _mergedInstances.push_back(instance);
-            Sets->at(i)->getInstances()->merged = true; // Mark the instance as merged
-            _pinMappings.emplace_back(Sets->at(i)->getInstances()->name() + "/D map " + instance->name() + "/D");
-            _pinMappings.emplace_back(Sets->at(i)->getInstances()->name() + "/Q map " + instance->name() + "/Q");
-            _pinMappings.emplace_back(Sets->at(i)->getInstances()->name() + "/CLK map " + instance->name() + "/CLK");
-            
-            cell_instance++;
-        }
-    }
 
     // Clean up
     for (auto set : *Sets)
@@ -726,140 +762,72 @@ void MBFFOptimizer::printInput()
 };
 
 
-Instance *MBFFOptimizer::merge2BitFF(Instance *FF1, Instance *FF2, int x, int y, int merge_num, int net_count)
-{
+Instance* MBFFOptimizer::merge2FF(Instance* FF1, Instance* FF2, int x, int y, int merge_num, int net_count) {
     int attempts = 0;
     Point2<int> placement_point;
-
-    // pint points
-    int placement_X; // output placement points
-    int placement_Y;
-
+    int placement_X, placement_Y;
+    
     int q1_x = FF1->x();
     int q1_y = FF1->y();
-
     int q2_x = FF2->x();
     int q2_y = FF2->y();
-    // cout << x << " " << y << endl;
-    // output Flipflop
+
     string name = "new_inst_" + to_string(_instCnt++) + "_" + to_string(net_count) + "_" + to_string(merge_num);
-    Instance *outputFF = nullptr;
-    CellLibrary *bestFF;
+    Instance* outputFF = nullptr;
+    CellLibrary* bestFF;
 
-    while (attempts < get_bit2_ff().size())
-    {
+    while (attempts < get_bit2_ff().size()) {
         bestFF = get_bit2_ff()[attempts];
+        int numBits = bestFF->numBits();
 
-        placement_point = ((FF1->x()+FF2->x())/2, (FF1->y()+FF2->y())/2);
-        // cout << "ghjk" << endl;
-        placement_X = placement_point.y;
-        placement_Y = placement_point.x;
-        // cout << placement_X << " " << placement_Y << endl;
-        //  ---------- check if still in feasable region ------------//
-        if (placement_X)
-        {
+        placement_point = Point2<int>((q1_x + q2_x) / 2, (q1_y + q2_y) / 2); // correct usage
+        placement_X = placement_point.x;
+        placement_Y = placement_point.y;
 
-            //  1. get manhatten distance of displacement from flip flops
-            double manhatten_distance_1 = abs(q1_x - _pPlacementRows[0]->x() - placement_X * _pPlacementRows[0]->width()) + abs(q1_y - _pPlacementRows[0]->y() - placement_Y * _pPlacementRows[0]->height());
-            double manhatten_distance_2 = abs(q2_x - _pPlacementRows[0]->x() - placement_X * _pPlacementRows[0]->width()) + abs(q2_y - _pPlacementRows[0]->y() - placement_Y * _pPlacementRows[0]->height());
+        double manhattan1 = abs(q1_x - (_pPlacementRows[0]->x() + placement_X * _pPlacementRows[0]->width())) +
+                            abs(q1_y - (_pPlacementRows[0]->y() + placement_Y * _pPlacementRows[0]->height()));
+        double manhattan2 = abs(q2_x - (_pPlacementRows[0]->x() + placement_X * _pPlacementRows[0]->width())) +
+                            abs(q2_y - (_pPlacementRows[0]->y() + placement_Y * _pPlacementRows[0]->height()));
 
-            //  2. calculate if slack is still positive
-            double slack1 = FF1->totalTimingSlack() - manhatten_distance_1 * _displacementDelay;
-            double slack2 = FF2->totalTimingSlack() - manhatten_distance_1 * _displacementDelay;
+        double slack1 = FF1->totalTimingSlack() - manhattan1 * _displacementDelay;
+        double slack2 = FF2->totalTimingSlack() - manhattan2 * _displacementDelay;
 
-            if ((slack1 > 0) and (slack2 > 0))
-            {
-                // generate_name
-                name = name + to_string(net_count) + "_" + to_string(merge_num);
+        if (slack1 > 0 && slack2 > 0) {
+            outputFF = new Instance(name, bestFF,
+                placement_X * _pPlacementRows[0]->width() + _pPlacementRows[0]->x(),
+                placement_Y * _pPlacementRows[0]->height() + _pPlacementRows[0]->y(),
+                bestFF->numPins());
 
-                // create new output flip flop
-                outputFF = new Instance(name, bestFF, placement_X * _pPlacementRows[0]->width() + _pPlacementRows[0]->x(), placement_Y * _pPlacementRows[0]->height() + _pPlacementRows[0]->y(), bestFF->numPins());
+            // Automatically add D0~Dn, Q0~Qn
+            for (int i = 0; i < numBits; ++i) {
+                std::string dName = "D" + std::to_string(i);
+                std::string qName = "Q" + std::to_string(i);
 
-                // set new output pins
-                // calculate output pin position => D0, D1, Q0, Q1;
+                if (bestFF->pPin(dName)) {
+                    int dx = placement_X + bestFF->pPin(dName)->x();
+                    int dy = placement_Y + bestFF->pPin(dName)->y();
+                    InstancePin* pinD = new InstancePin("", dName + "_", dx, dy, 0);
+                    outputFF->addPin(pinD);
+                }
 
-                int d0_x = placement_X + bestFF->pPin("D0")->x();
-                int d0_y = placement_Y + bestFF->pPin("D0")->y();
-
-                InstancePin *D_0 = new InstancePin("", "D0_", d0_x, d0_y, 0);
-                outputFF->addPin(D_0);
-
-                int d1_x = placement_X + bestFF->pPin("D1")->x();
-                int d1_y = placement_Y + bestFF->pPin("D1")->y();
-
-                InstancePin *D_1 = new InstancePin("", "D1_", d1_x, d1_y, 0);
-                outputFF->addPin(D_1);
-
-                int o_q0_x = placement_X + bestFF->pPin("Q0")->x();
-                int o_q0_y = placement_Y + bestFF->pPin("Q0")->y();
-
-                InstancePin *Q_0 = new InstancePin("", "Q0_", o_q0_x, o_q0_y, 0);
-                outputFF->addPin(Q_0);
-
-                int o_q1_x = placement_X + bestFF->pPin("Q1")->x();
-                int o_q1_y = placement_Y + bestFF->pPin("Q1")->y();
-
-                InstancePin *Q_1 = new InstancePin("", "Q1_", o_q1_x, o_q1_y, 0);
-                outputFF->addPin(Q_1);
-
-                break;
+                if (bestFF->pPin(qName)) {
+                    int qx = placement_X + bestFF->pPin(qName)->x();
+                    int qy = placement_Y + bestFF->pPin(qName)->y();
+                    InstancePin* pinQ = new InstancePin("", qName + "_", qx, qy, 0);
+                    outputFF->addPin(pinQ);
+                }
             }
-            else
-            {
-                attempts = attempts + 1;
-            }
+
+            break;
         }
+
+        ++attempts;
     }
+
     return outputFF;
 }
-Point2<int> MBFFOptimizer::find_legal_position(int row, int col)
-{
-    int row_index = row;
-    int col_index = col;
-    std::queue<Point2<int>> toVisit;
-    // std::set<Point2<int>> visited;
-    unordered_map<Point2<int>, bool, PointHash<int>> visited;
 
-    toVisit.push(Point2<int>(row_index, col_index));
 
-    while (!toVisit.empty())
-    {
-        Point2<int> current = toVisit.front();
-        toVisit.pop();
-
-        if (visited.find(current) != visited.end())
-        { // check if current is already visited
-            continue;
-        }
-        visited.insert({current, true}); // mark current as visited
-
-        if (!_pPlacementRows[current.x]->isoccupied(current.y))
-        {
-            return current;
-        }
-
-        std::vector<Point2<int>> neighbors = {
-            {current.x + 1, current.y}, {current.x - 1, current.y}, {current.x, current.y + 1}, {current.x, current.y - 1}};
-
-        for (const auto &neighbor : neighbors)
-        {
-            if (neighbor.x >= 0 && neighbor.x < _pPlacementRows.size() && neighbor.y >= 0 && neighbor.y < _pPlacementRows[0]->numSites() && visited.find(neighbor) == visited.end())
-            {
-                toVisit.push(neighbor);
-            }
-        }
-    }
-    cout << "no legal position found\n";
-    return Point2<int>(-1, -1);
-}
-// void MBFFOptimizer::print_ff_change()
-// {
-//     cout << "\nPrint Output\n";
-//     for (const auto &[str, instance] : output_map)
-//     {
-//         cout << str << " " << instance->name() << endl;
-//     }
-// }
 
 
 double MBFFOptimizer::HPWL(vector<Instance *> *pInstances)
