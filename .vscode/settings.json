@@ -58,6 +58,7 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "codecvt": "cpp",
-        "iomanip": "cpp"
+        "iomanip": "cpp",
+        "unordered_set": "cpp"
     }
 }

@@ -1,13 +1,43 @@
 #include "MBFFOptimizer.h"
 #include <algorithm>
 #include "visualizer.h"
+#include <cairo/cairo.h>
+#include <unordered_set>
 
 // Assuming 2bifffLibrary is a vector of BiFFFLibrary objects
 
-bool MBFFOptimizer::placeLegal(Instance* inst, Point2<int> desPos ) { // despos is grid position
+// 1. Equality operator
+template<typename T>
+bool operator==(const Point2<T>& a, const Point2<T>& b) {
+    return a.x == b.x && a.y == b.y;
+}
+
+// 2. Hash function specialization
+namespace std {
+    template<>
+    struct hash<Point2<int>> {
+        size_t operator()(const Point2<int>& p) const {
+            return hash<int>()(p.x) ^ (hash<int>()(p.y) << 1);
+        }
+    };
+}
+
+bool MBFFOptimizer::placeLegal(Instance* inst, Point2<int> desPos) {
     vector<Point2<int>> candidates;
     vector<Point2<int>> prevCandidates;
+    std::unordered_set<Point2<int>> visited;
+
+    //change the FF type of the instance to the best of the checkers
+    if (inst->pCellLibrary()->numBits() == 1) {
+        inst->setCellLibrary(_name2pFFLibrary[FF1Checker[0].second]);
+    } else if (inst->pCellLibrary()->numBits() == 2) {
+        inst->setCellLibrary(_name2pFFLibrary[FF2Checker[0].second]);
+    } else if (inst->pCellLibrary()->numBits() == 4) {
+        inst->setCellLibrary(_name2pFFLibrary[FF4Checker[0].second]);
+    }
+
     candidates.push_back(desPos);
+    visited.insert(desPos);
     int count = 0;
 
     auto isLegal = [&](int row, int col, int h, int w) -> bool {
@@ -31,7 +61,15 @@ bool MBFFOptimizer::placeLegal(Instance* inst, Point2<int> desPos ) { // despos 
         }
     };
 
-    while (count < 15) {
+    while (count < 1000) {
+        // if (count < 8) {
+        //     std::cout << "count: " << count << ", size: " << candidates.size() << ": ";
+        //     for (const auto& cand : candidates) {
+        //         std::cout << "(" << cand.x << ", " << cand.y << ") ";
+        //     }
+        //     std::cout << std::endl;
+        // }
+
         prevCandidates = candidates;
         candidates.clear();
 
@@ -53,28 +91,27 @@ bool MBFFOptimizer::placeLegal(Instance* inst, Point2<int> desPos ) { // despos 
                 int w = gridSize.x;
 
                 if (isLegal(row, col, h, w)) {
-                    // Legal position found
                     inst->setX(_pPlacementRows[0]->x() + col * _pPlacementRows[0]->width());
                     inst->setY(_pPlacementRows[row]->y());
                     markOccupied(row, col, h, w);
-                    //change the FF type of instance
                     inst->setCellLibrary(_name2pFFLibrary[cellName]);
                     return true;
                 }
             }
         }
 
-        // Expand BFS: add adjacent cells
         for (auto& pos : prevCandidates) {
             std::vector<Point2<int>> neighbors = {
-                {pos.x + 1, pos.y}, {pos.x - 1, pos.y},
-                {pos.x, pos.y + 1}, {pos.x, pos.y - 1}
+                {pos.x + 1, pos.y}, {pos.x, pos.y + 1},
+                {pos.x - 1, pos.y}, {pos.x, pos.y - 1}
             };
             for (auto& next : neighbors) {
                 if (next.x >= 0 && next.y >= 0 &&
                     next.x < static_cast<int>(_occupiedMask.size()) &&
-                    next.y < static_cast<int>(_occupiedMask[0].size())) {
+                    next.y < static_cast<int>(_occupiedMask[0].size()) &&
+                    visited.find(next) == visited.end()) {
                     candidates.push_back(next);
+                    visited.insert(next);
                 }
             }
         }
@@ -82,9 +119,14 @@ bool MBFFOptimizer::placeLegal(Instance* inst, Point2<int> desPos ) { // despos 
         ++count;
     }
 
-    std::cout << "Cannot find legal placement for instance: " << inst->name() << std::endl;
+    std::cout << "Cannot find legal placement for instance: " << inst->name()
+              << ", bits :" << inst->pCellLibrary()->numBits() << '\n';
+    if (inst->pCellLibrary()->numBits() == 1) {
+        std::cout << "FUCKING ASSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS" << std::endl;
+    }
     return false;
 }
+
 
 void MBFFOptimizer::initFFChecker() {
     FF1Checker.clear();
@@ -117,10 +159,44 @@ void MBFFOptimizer::initFFChecker() {
         return areaA < areaB;
     };
 
-    std::sort(FF1Checker.begin(), FF1Checker.end(), areaCmp);
-    std::sort(FF2Checker.begin(), FF2Checker.end(), areaCmp);
-    std::sort(FF4Checker.begin(), FF4Checker.end(), areaCmp);
+    double maxVal = std::max({_alpha, _beta, _gamma});
+    double expAlpha = std::exp(_alpha - maxVal);
+    double expBeta  = std::exp(_beta  - maxVal);
+    double expGamma = std::exp(_gamma - maxVal);
+    double sum = expAlpha + expBeta + expGamma;
+
+    double normAlpha = expAlpha / sum;
+    double normBeta  = expBeta  / sum;
+    double normGamma = expGamma / sum;
+
+    auto scoreCmp = [&](const std::pair<Point2<int>, std::string>& a,
+                       const std::pair<Point2<int>, std::string>& b) {
+        double areaA = _name2pFFLibrary[a.second]->area();
+        double areaB = _name2pFFLibrary[b.second]->area();
+        double powerA = _name2pFFLibrary[a.second]->gatePower();
+        double powerB = _name2pFFLibrary[b.second]->gatePower();
+        double scoreA = _gamma*areaA + _beta*powerA; // Adjust power weight as needed
+        double scoreB = _gamma*areaB + _beta*powerB; // Adjust power weight as needed
+        return scoreA < scoreB;
+    };
+
+    std::cout <<"checker 1 size" << FF1Checker.size() << std::endl;
+
+    auto sorter = scoreCmp;
+    auto keepTopHalf = [](auto& checker, auto& cmp) {
+        std::sort(checker.begin(), checker.end(), cmp);
+        // size_t keepSize = (checker.size() / 3) >10 ? (checker.size() / 3) : 10; // Keep at least 5 or 20% of the elements
+        size_t keepSize = checker.size();
+        checker.resize(keepSize);
+    };
+
+    keepTopHalf(FF1Checker, sorter);
+    keepTopHalf(FF2Checker, sorter);
+    keepTopHalf(FF4Checker, sorter);
+    std::cout <<"checker 1 size" << FF1Checker.size() << std::endl;
 }
+
+
 
 
 
@@ -132,7 +208,52 @@ void MBFFOptimizer::init_occupied() {
     for (size_t row = 0; row < numRows; ++row) {
         _occupiedMask[row].resize(numSitesPerRow, false); // all unoccupied
     }
+
+    // Mark gate instance area as occupied
+    for (const auto& [name, instance] : _name2pInstances_gate) {
+        int row = static_cast<int>((instance->y()-_pPlacementRows[0]->y()) / _pPlacementRows[0]->height());
+        int col = static_cast<int>((instance->x()-_pPlacementRows[0]->x()) / _pPlacementRows[0]->width());
+        int h = static_cast<int>(std::ceil(instance->pCellLibrary()->height() / _pPlacementRows[0]->height()));
+        int w = static_cast<int>(std::ceil(instance->pCellLibrary()->width() / _pPlacementRows[0]->width()));
+
+        for (int r = row; r < row + h; ++r) {
+            for (int c = col; c < col + w; ++c) {
+                if (r >= 0 && r < static_cast<int>(numRows) && c >= 0 && c < static_cast<int>(numSitesPerRow)) {
+                    _occupiedMask[r][c] = true;
+                }
+            }
+        }
+    }
+
+    // ==== Plotting the occupancy mask ====
+    int scale = 2;  // adjust to zoom in/out
+    int width = numSitesPerRow * scale;
+    int height = numRows * scale;
+
+    cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+    cairo_t *cr = cairo_create(surface);
+
+    // White background
+    cairo_set_source_rgb(cr, 1, 1, 1);
+    cairo_paint(cr);
+
+    // Draw occupied cells
+    cairo_set_source_rgb(cr, 0, 0, 0);
+    for (size_t r = 0; r < numRows; ++r) {
+        for (size_t c = 0; c < numSitesPerRow; ++c) {
+            if (_occupiedMask[r][c]) {
+                cairo_rectangle(cr, c * scale, r * scale, scale, scale);
+            }
+        }
+    }
+    cairo_fill(cr);
+
+    cairo_surface_write_to_png(surface, "debug_occupied_mask.png");
+    cairo_destroy(cr);
+    cairo_surface_destroy(surface);
+    std::cout << "[INFO] Occupied mask written to debug_occupied_mask.png\n";
 }
+
 
 void Union(DisSet *b, DisSet *c)
 {
@@ -353,6 +474,7 @@ void MBFFOptimizer::Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fs
     unsigned elem1 = 0;
     unsigned elem2 = 0;
     int merge_num = 0;
+    bool merge_success = false;
 
     while (count < visited->size())
     {
@@ -404,16 +526,18 @@ void MBFFOptimizer::Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fs
             string name = "new_inst_" + to_string(_instCnt++) + "_" + to_string(net_count) + "_" + to_string(merge_num);
             instance = merge1BitFF(Sets->at(elem1)->getInstances()[0], x, y, merge_num, net_count);
             instance->setName(name);  // Set the new name for the instance
-            placeLegal(instance, Point2<int>(floor((y - _pPlacementRows[0]->y()) / _pPlacementRows[0]->height()),
+            merge_success = placeLegal(instance, Point2<int>(floor((y - _pPlacementRows[0]->y()) / _pPlacementRows[0]->height()),
                                                         floor((x - _pPlacementRows[0]->x()) / _pPlacementRows[0]->width())));
 
-            _mergedInstances.push_back(instance);
-            Sets->at(elem1)->getInstances()[0]->merged = true; // Mark the instance as merged
-            _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/D map " + instance->name() + "/D");
-            _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/Q map " + instance->name() + "/Q");
-            _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/CLK map " + instance->name() + "/CLK");
+            if(merge_success){
+                _mergedInstances.push_back(instance);
+                Sets->at(elem1)->getInstances()[0]->merged = true; // Mark the instance as merged
+                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/D map " + instance->name() + "/D");
+                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/Q map " + instance->name() + "/Q");
+                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/CLK map " + instance->name() + "/CLK");
 
-            cell_instance++;
+                cell_instance++;
+            }
         }
         else
         {
@@ -436,19 +560,21 @@ void MBFFOptimizer::Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fs
             {
                 string name = "new_inst_" + to_string(_instCnt++) + "_" + to_string(net_count) + "_" + to_string(merge_num);
                 instance->setName(name);  // Set the new name for the instance
-                placeLegal(instance, Point2<int>(floor((y - _pPlacementRows[0]->y()) / _pPlacementRows[0]->height()),
+                merge_success = placeLegal(instance, Point2<int>(floor((y - _pPlacementRows[0]->y()) / _pPlacementRows[0]->height()),
                                                         floor((x - _pPlacementRows[0]->x()) / _pPlacementRows[0]->width())));
-                _mergedInstances.push_back(instance);
-                Sets->at(elem1)->getInstances()[0]->merged = true; // Mark the instance as merged
-                Sets->at(elem2)->getInstances()[0]->merged = true; // Mark the instance as merged
-                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/D map " + instance->name() + "/D0");
-                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/Q map " + instance->name() + "/Q0");
-                _pinMappings.emplace_back(Sets->at(elem2)->getInstances()[0]->name() + "/D map " + instance->name() + "/D1");
-                _pinMappings.emplace_back(Sets->at(elem2)->getInstances()[0]->name() + "/Q map " + instance->name() + "/Q1");
-                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/CLK map " + instance->name() + "/CLK");
-                _pinMappings.emplace_back(Sets->at(elem2)->getInstances()[0]->name() + "/CLK map " + instance->name() + "/CLK");
+                if (merge_success){
+                    _mergedInstances.push_back(instance);
+                    Sets->at(elem1)->getInstances()[0]->merged = true; // Mark the instance as merged
+                    Sets->at(elem2)->getInstances()[0]->merged = true; // Mark the instance as merged
+                    _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/D map " + instance->name() + "/D0");
+                    _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/Q map " + instance->name() + "/Q0");
+                    _pinMappings.emplace_back(Sets->at(elem2)->getInstances()[0]->name() + "/D map " + instance->name() + "/D1");
+                    _pinMappings.emplace_back(Sets->at(elem2)->getInstances()[0]->name() + "/Q map " + instance->name() + "/Q1");
+                    _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/CLK map " + instance->name() + "/CLK");
+                    _pinMappings.emplace_back(Sets->at(elem2)->getInstances()[0]->name() + "/CLK map " + instance->name() + "/CLK");
 
-                cell_instance++;
+                    cell_instance++;
+                }
             }
             else
             {
@@ -614,12 +740,16 @@ void MBFFOptimizer::algorithm(std::string baseName)
         }
 
         count++;
-
-        if (count % ploting_interval == 0)
+        if(count % 100 == 0)
         {
-            std::cout << "Plotting progress: " << count/ploting_interval*10 << "%\n";
-            plotMerge(dieWidth(), dieHeight(), _name2pInstances_ff, _name2pInstances_gate, _mergedInstances, baseName, count /ploting_interval);
+            std::cout << "Processing net: " << count  << "\n";
         }
+
+        // if (count % ploting_interval == 0)
+        // {
+        //     // std::cout << "Plotting progress: " << count/ploting_interval*10 << "%\n";
+        //     plotMerge(dieWidth(), dieHeight(), _name2pInstances_ff, _name2pInstances_gate, _mergedInstances, baseName, count /ploting_interval);
+        // }
     }
 
     std::cout << "Total nets processed: " << count << "\n";
@@ -735,46 +865,6 @@ void MBFFOptimizer::printInput()
 };
 
 
-// void MBFFOptimizer::init_occupied()
-// {
-//     cout << "init occupied\n";
-//     for (unsigned i = 0; i < _pPlacementRows.size(); i++)
-//     {
-//         _pPlacementRows[i]->initoccupied();
-//     }
-//     for (const auto &gate : _name2pInstances_gate)
-//     { // second is the gate
-//         int gate_row_bottom = (gate.second->y() - _pPlacementRows[0]->y()) / _pPlacementRows[0]->height();
-//         int gate_row_top = (gate.second->y() + gate.second->pCellLibrary()->height() - _pPlacementRows[0]->y()) / _pPlacementRows[0]->height();
-//         int gate_index_left = (gate.second->x() - _pPlacementRows[0]->x()) / _pPlacementRows[0]->width();
-//         int gate_index_right = (gate.second->x() + gate.second->pCellLibrary()->width() - _pPlacementRows[0]->x()) / _pPlacementRows[0]->width();
-//         // cout<<"gate row bottom: "<<gate_row_bottom<<" gate row top: "<<gate_row_top<<" gate index left: "<<gate_index_left<<" gate index right: "<<gate_index_right<<endl;
-//         for (int i = gate_row_bottom; i <= gate_row_top; i++)
-//         {
-//             for (int j = gate_index_left; j <= gate_index_right; j++)
-//             {
-//                 _pPlacementRows[i]->setoccupied(j, true);
-//                 // cout<<(gate_row_top - gate_row_bottom+1) * (gate_index_right-gate_index_left+1)<<"   ";
-//             }
-//         }
-//         // cout<<endl;
-//     }
-
-//     cout << "finish init occupied\n";
-//     int count = 0;
-//     for (unsigned int i = 0; i < _pPlacementRows.size(); i++)
-//     {
-//         for (unsigned int j = 0; j < _pPlacementRows[i]->numSites(); j++)
-//         {
-//             // cout<<_pPlacementRows[i]->isoccupied(j)<<" ";
-//             if (_pPlacementRows[i]->isoccupied(j))
-//             {
-//                 count++;
-//             }
-//         }
-//     }
-//     cout << count << endl;
-// }
 Instance *MBFFOptimizer::merge2BitFF(Instance *FF1, Instance *FF2, int x, int y, int merge_num, int net_count)
 {
     int attempts = 0;

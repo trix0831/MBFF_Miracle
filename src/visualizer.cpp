@@ -160,8 +160,8 @@ void plotMerge(int width, int height, std::unordered_map<std::string, Instance*>
 
     // Draw the die outline (now in µm again)
     plotOutline(cr, widthUm, heightUm);
-    std::cout << "Plotting chip layout with dimensions: "
-              << widthUm << "µm x " << heightUm << "µm\n";
+    // std::cout << "Plotting chip layout with dimensions: "
+    //           << widthUm << "µm x " << heightUm << "µm\n";
 
     //plot unmerged FF instances
     int ff_count_unmerged = 0;
