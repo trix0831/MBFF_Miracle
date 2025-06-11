@@ -810,8 +810,14 @@ double MBFFOptimizer::score(string InstanceName, int k)
     int num_buckets = 400;
     int bucket_index = floor(x / num_buckets);
     vector<Instance*> L;
-    vector<Instance*> target;
-    
+    vector<Instance*> target2k, targetk;
+    target2k = findknear(InstanceName, k * 2);
+    for(int i = 0; i < k; i++){
+        L.push_back(target2k[i]);
+    }
+    double L2k = HPWL(&target2k);
+    double Lk = HPWL(&L);
+    score += L2k - Lk;
     score += c1 / c2 * (1 / (1 + exp(_name2pInstances_ff[InstanceName]->TimingSlack("D"))));
     return score;
 }
@@ -822,95 +828,72 @@ vector<Instance*> MBFFOptimizer::findknear(string InstanceName, int k)
     vector<Instance*> target;
     double x = _name2pInstances_ff[InstanceName]->x();
     double y = _name2pInstances_ff[InstanceName]->y();
-    int num_buckets = 400;
-    int bucket_index = floor(x / num_buckets);
-    for(int i = 0; i < _bucket[bucket_index].size(); i++){
-        if(_bucket[bucket_index][i]->name() == InstanceName){
-            if(i + 1 < _bucket[bucket_index].size()){
-                L.push_back(_bucket[bucket_index][i + 1]);
-            }
-            if(i - 1 >= 0){
-                L.push_back(_bucket[bucket_index][i - 1]);
-            }
+    L.push_back(_name2pInstances_ff[InstanceName]);
+    int left = 0;
+    int right = _bucket.bucket_query(x, 0).size() - 1;
+    int index;
+    while(left <= right){
+        int mid = (left + right) / 2;
+        if(_bucket.bucket_query(x, 0)[mid]->y() < y){
+            left = mid + 1;
+        }else if(_bucket.bucket_query(x, 0)[mid]->y() > y){
+            right = mid - 1;
+        }else{
+            index = mid;
             break;
         }
+        index = mid;
     }
-    // Check if the bucket index is within bounds
-    if(bucket_index > _bucket.size()){
-        for(int i = 0; i < _bucket[bucket_index - 1].size(); i++){
-            if(_bucket[bucket_index - 1][i]->y() >= y){
-                L.push_back(_bucket[bucket_index - 1][i]);
-                if(i + 1 < _bucket[bucket_index - 1].size()){
-                    L.push_back(_bucket[bucket_index - 1][i + 1]);
-                }
-                if(i - 1 >= 0){
-                    L.push_back(_bucket[bucket_index - 1][i - 1]);
-                }
-                break;
-            }
+    L.push_back(_bucket.bucket_query(x, 0)[index]);
+    if(index + 1 < _bucket.bucket_query(x, 0).size()){
+        L.push_back(_bucket.bucket_query(x, 0)[index + 1]);
+    }
+    if(index - 1 >= 0){
+        L.push_back(_bucket.bucket_query(x, 0)[index - 1]);
+    }
+    
+    left = 0;
+    right = _bucket.bucket_query(x, 1).size() - 1;
+    while(left <= right){
+        int mid = (left + right) / 2;
+        if(_bucket.bucket_query(x, 1)[mid]->y() < y){
+            left = mid + 1;
+        }else if(_bucket.bucket_query(x, 1)[mid]->y() > y){
+            right = mid - 1;
+        }else{
+            index = mid;
+            break;
         }
-        for(int i = 0; i < _bucket[bucket_index - 2].size(); i++){
-            if(_bucket[bucket_index - 2][i]->y() >= y){
-                L.push_back(_bucket[bucket_index - 2][i]);
-                if(i + 1 < _bucket[bucket_index - 2].size()){
-                    L.push_back(_bucket[bucket_index - 2][i + 1]);
-                }
-                if(i - 1 >= 0){
-                    L.push_back(_bucket[bucket_index - 2][i - 1]);
-                }
-                break;
-            }
+        index = mid;
+    }
+    L.push_back(_bucket.bucket_query(x, 1)[index]);
+    if(index + 1 < _bucket.bucket_query(x, 1).size()){
+        L.push_back(_bucket.bucket_query(x, 1)[index + 1]);
+    }
+    if(index - 1 >= 0){
+        L.push_back(_bucket.bucket_query(x, 1)[index - 1]);
+    }
+
+    left = 0;
+    right = _bucket.bucket_query(x, -1).size() - 1;
+    while(left <= right){
+        int mid = (left + right) / 2;
+        if(_bucket.bucket_query(x, -1)[mid]->y() < y){
+            left = mid + 1;
+        }else if(_bucket.bucket_query(x, -1)[mid]->y() > y){
+            right = mid - 1;
+        }else{
+            index = mid;
+            break;
         }
-    }else if(bucket_index == 0){
-        for(int i = 0; i < _bucket[bucket_index + 1].size(); i++){
-            if(_bucket[bucket_index + 1][i]->y() >= y){
-                L.push_back(_bucket[bucket_index + 1][i]);
-                if(i + 1 < _bucket[bucket_index + 1].size()){
-                    L.push_back(_bucket[bucket_index + 1][i + 1]);
-                }
-                if(i - 1 >= 0){
-                    L.push_back(_bucket[bucket_index + 1][i - 1]);
-                }
-                break;
-            }
-        }
-        for(int i = 0; i < _bucket[bucket_index + 2].size(); i++){
-            if(_bucket[bucket_index + 2][i]->y() >= y){
-                L.push_back(_bucket[bucket_index + 2][i]);
-                if(i + 1 < _bucket[bucket_index + 2].size()){
-                    L.push_back(_bucket[bucket_index + 2][i + 1]);
-                }
-                if(i - 1 >= 0){
-                    L.push_back(_bucket[bucket_index + 2][i - 1]);
-                }
-                break;
-            }
-        }
-    }else{
-        for(int i = 0; i < _bucket[bucket_index + 1].size(); i++){
-            if(_bucket[bucket_index + 1][i]->y() >= y){
-                L.push_back(_bucket[bucket_index + 1][i]);
-                if(i + 1 < _bucket[bucket_index + 1].size()){
-                    L.push_back(_bucket[bucket_index + 1][i + 1]);
-                }
-                if(i - 1 >= 0){
-                    L.push_back(_bucket[bucket_index + 1][i - 1]);
-                }
-                break;
-            }
-        }
-        for(int i = 0; i < _bucket[bucket_index - 1].size(); i++){
-            if(_bucket[bucket_index - 1][i]->y() >= y){
-                L.push_back(_bucket[bucket_index - 1][i]);
-                if(i + 1 < _bucket[bucket_index - 1].size()){
-                    L.push_back(_bucket[bucket_index - 1][i + 1]);
-                }
-                if(i - 1 >= 0){
-                    L.push_back(_bucket[bucket_index - 1][i - 1]);
-                }
-                break;
-            }
-        }
+        index = mid;
+    }
+    L.push_back(_bucket.bucket_query(x, -1)[index]);
+    if(index + 1 < _bucket.bucket_query(x, -1).size()){
+        L.push_back(_bucket.bucket_query(x, -1)[index + 1]);
+    }
+    if(index - 1 >= 0){
+        L.push_back(_bucket.bucket_query(x, -1)[index - 1]);
     }
 
     if(L.size() < k)
@@ -920,9 +903,20 @@ vector<Instance*> MBFFOptimizer::findknear(string InstanceName, int k)
     }
 
     // Sort the vector based on the distance to the target point
-    
+    sort(L.begin(), L.end(), [x, y](Instance* a, Instance* b) {
+        double dist_a = (a->x() - x) * (a->x() - x) + (a->y() - y) * (a->y() - y);
+        double dist_b = (b->x() - x) * (b->x() - x) + (b->y() - y) * (b->y() - y);
+        return dist_a < dist_b;
+    });
 
-    return L;
+    for(int i = 0; i < L.size(); i ++){
+        if(i >= k){
+            break;
+        }
+        target.push_back(L[i]);
+    }
+
+    return target;
 }
 
 

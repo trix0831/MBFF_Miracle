@@ -22,6 +22,7 @@
 #include <math.h>
 #include "DisSet.h"
 #include <algorithm>
+#include "BucketList.h"
 using namespace std;
 
 class MBFFOptimizer
@@ -136,7 +137,7 @@ private:
   vector<Instance *> _pflipflops;
   unordered_map<string, Instance *> _name2pInstances_ff;
   unordered_map<string, Instance *> _name2pInstances_gate;
-  vector<vector<Instance*>> _bucket;
+  BucketList _bucket;
   // Nets
   unsigned _numNets;
   vector<Net *> _pNets;
