@@ -52,7 +52,7 @@ public:
             cout << "insert " << instance->name() << " at bucket index " << index(x) << " with y = " << y << std::endl;
     }
 
-    std::vector<Instance *> bucket_query(double x) const
+    std::vector<Instance *> bucket_query(double x, int i) const
     {
 
         if (x < minX || x > maxX)
@@ -61,12 +61,14 @@ public:
             return {};
         }
         std::vector<Instance *> out;
-        for (Instance *instance : buckets[index(x)])
+        if (index(x) + i < bucket_cnt && index(x) + i >= 0)
         {
-            if (!instance->fixed())
-                out.push_back(instance);
+            for (Instance *instance : buckets[index(x) + i])
+            {
+                if (!instance->fixed())
+                    out.push_back(instance);
+            }
         }
-
         return out;
     }
 
