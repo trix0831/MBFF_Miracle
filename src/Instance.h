@@ -12,7 +12,7 @@ class Instance
 {
 public:
   Instance(string name = "", CellLibrary *pCellLibrary = nullptr, double x = -1, double y = -1, unsigned numPins = -1)
-      : _name(name), _pCellLibrary(pCellLibrary), _x(x), _y(y), _numPins(numPins)
+      : _name(name), _pCellLibrary(pCellLibrary), _fixed(false), _x(x), _y(y), _numPins(numPins)
   {
     for (unsigned i = 0; i < numPins; i++)
     {
@@ -25,6 +25,7 @@ public:
   /////////////////////////////////////////////
   string name() { return _name; }
   CellLibrary *pCellLibrary() { return _pCellLibrary; }
+  bool fixed() { return _fixed; }
   double x() { return _x; }
   double y() { return _y; }
   unsigned numPins() { return _numPins; }
@@ -32,12 +33,14 @@ public:
   unordered_map<string, InstancePin *> name2pPins() { return _name2pPins; }
   double TimingSlack(string pinName) { return _TimingSlack[pinName]; }
   unordered_map<string, double> TimingSlack() { return _TimingSlack; }
+  bool merged = 0;
   // Net *pinNet(InstancePin *pPin) { return _pinNet[pPin]; } // check different pin nets
   /////////////////////////////////////////////
   // set
   /////////////////////////////////////////////
   void setName(string name) { _name = name; }
   void setCellLibrary(CellLibrary *pCellLibrary) { _pCellLibrary = pCellLibrary; }
+  void setFixed(bool fixed) { _fixed = fixed; }
   void setX(double x) { _x = x; }
   void setY(double y) { _y = y; }
   // void setPinNet(InstancePin *pPin, Net *pNet) { _pinNet[pPin] = pNet; }
@@ -60,6 +63,7 @@ public:
 private:
   string _name;
   CellLibrary *_pCellLibrary;
+  bool _fixed;
   double _x;
   double _y;
   unsigned _numPins;

@@ -38,11 +38,13 @@ public:
   ~MBFFOptimizer();
   Instance *merge2BitFF(Instance *FF1, Instance *FF2, int x, int y, int merge_num, int net_count);
   Instance *merge1BitFF(Instance *FF1, int x, int y, int merge_num, int net_count);
+  unsigned           _instCnt;
   void printPlacement();
   void algorithm();
   void placement();
   void printWeight();
   void printInput();
+  void PrintOutfile(fstream &outfile);
   void init_occupied();
   // void Preset();
   void set_best1bitff();
@@ -92,6 +94,15 @@ public:
       return hash1 ^ (hash2 << 1); // Combine the two hash values
     }
   };
+
+    // Store all new merged instances in order
+  std::vector<Instance*> _mergedInstances;
+
+  // Store pin mappings: each line like "C1/D map C3/D0"
+  std::vector<std::string> _pinMappings;
+
+
+
 
 private:
   // Weight factors
@@ -143,6 +154,15 @@ private:
   void findFeasable_reg(Net *net, fstream &outfile, int net_count = 0);
   void print_weight_matrix(vector<vector<double> *> *weight_matrix);
   void printCliqueGraph(Graph *clique_graph);
+  void recordMergedInstance(Instance* instance,
+                                         const std::vector<std::pair<std::string, std::string>>& pinMap)
+{
+    _mergedInstances.push_back(instance);
+    for (const auto& [src, dst] : pinMap)
+    {
+        _pinMappings.emplace_back(src + " map " + dst);
+    }
+}
 
   void parseInput(fstream &inFile)
   {
@@ -178,7 +198,7 @@ private:
         _gamma = stod(input_string[1]);
         // cout << "input Gamma" << endl;
       }
-      else if (input_string[0] == "Lambda")
+      else if (input_string[0] == "Lambda") // Not used in 2025 CAD B
       {
         _lambda = stod(input_string[1]);
         // cout << "input lambda" << endl;
