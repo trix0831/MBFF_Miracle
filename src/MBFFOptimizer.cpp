@@ -198,6 +198,7 @@ void MBFFOptimizer::PrintOutfile(fstream &outfile)
             // if you need pin-mapping lines, do it here:
             _pinMappings.emplace_back(origName + "/D map " + newName + "/D");
             _pinMappings.emplace_back(origName + "/Q map " + newName + "/Q");
+            _pinMappings.emplace_back(origName + "/CLK map " + newName + "/CLK");
         }
     }
 
@@ -276,6 +277,7 @@ void MBFFOptimizer::Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fs
             Sets->at(elem1)->getInstances()[0]->merged = true; // Mark the instance as merged
             _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/D map " + instance->name() + "/D");
             _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/Q map " + instance->name() + "/Q");
+            _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/CLK map " + instance->name() + "/CLK");
 
             cell_instance++;
         }
@@ -307,6 +309,8 @@ void MBFFOptimizer::Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fs
                 _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/Q map " + instance->name() + "/Q0");
                 _pinMappings.emplace_back(Sets->at(elem2)->getInstances()[0]->name() + "/D map " + instance->name() + "/D1");
                 _pinMappings.emplace_back(Sets->at(elem2)->getInstances()[0]->name() + "/Q map " + instance->name() + "/Q1");
+                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/CLK map " + instance->name() + "/CLK");
+                _pinMappings.emplace_back(Sets->at(elem2)->getInstances()[0]->name() + "/CLK map " + instance->name() + "/CLK");
 
                 cell_instance++;
             }
@@ -322,6 +326,7 @@ void MBFFOptimizer::Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fs
                 Sets->at(elem1)->getInstances()[0]->merged = true; // Mark the instance as merged
                 _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/D map " + inst1->name() + "/D");
                 _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/Q map " + inst1->name() + "/Q");
+                _pinMappings.emplace_back(Sets->at(elem1)->getInstances()[0]->name() + "/CLK map " + inst1->name() + "/CLK");
                 cell_instance++;
 
                 int x2 = Sets->at(elem2)->getInstances()[0]->x();
@@ -333,6 +338,7 @@ void MBFFOptimizer::Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fs
                 Sets->at(elem2)->getInstances()[0]->merged = true; // Mark the instance as merged
                 _pinMappings.emplace_back(Sets->at(elem2)->getInstances()[0]->name() + "/D map " + inst2->name() + "/D");
                 _pinMappings.emplace_back(Sets->at(elem2)->getInstances()[0]->name() + "/Q map " + inst2->name() + "/Q");
+                _pinMappings.emplace_back(Sets->at(elem2)->getInstances()[0]->name() + "/CLK map " + inst2->name() + "/CLK");
                 cell_instance++;
             }
         }
@@ -398,6 +404,7 @@ void MBFFOptimizer::findFeasable_reg(Net *net, fstream &outfile, int net_count)
             Sets->at(i)->getInstances()[0]->merged = true; // Mark the instance as merged
             _pinMappings.emplace_back(Sets->at(i)->getInstances()[0]->name() + "/D map " + instance->name() + "/D");
             _pinMappings.emplace_back(Sets->at(i)->getInstances()[0]->name() + "/Q map " + instance->name() + "/Q");
+            _pinMappings.emplace_back(Sets->at(i)->getInstances()[0]->name() + "/CLK map " + instance->name() + "/CLK");
             
             cell_instance++;
         }
