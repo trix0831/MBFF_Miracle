@@ -22,6 +22,7 @@
 #include <math.h>
 #include "DisSet.h"
 #include <algorithm>
+#include "BucketList.h"
 using namespace std;
 
 class MBFFOptimizer
@@ -30,6 +31,11 @@ public:
   MBFFOptimizer(fstream &inFile, string out_file)
   {
     parseInput(inFile);
+    _bucket.setBucket(_pPlacementRows[0]->numSites() / 2, _placementRowLeftBottom.x, _placementRowRightTop.x);
+    for (Instance *instance : _pflipflops)
+    {
+      _bucket.insert(instance);
+    }
     _outfile = out_file;
     cell_instance = 0;
     // best1bitff = new CellLibrary("123", "123", 1, 1000000, 1000000, 0);
@@ -38,7 +44,7 @@ public:
   ~MBFFOptimizer();
   Instance *merge2BitFF(Instance *FF1, Instance *FF2, int x, int y, int merge_num, int net_count);
   Instance *merge1BitFF(Instance *FF1, int x, int y, int merge_num, int net_count);
-  unsigned           _instCnt;
+  unsigned _instCnt;
   void printPlacement();
   void algorithm();
   void placement();
@@ -92,14 +98,11 @@ public:
     }
   };
 
-    // Store all new merged instances in order
-  std::vector<Instance*> _mergedInstances;
+  // Store all new merged instances in order
+  std::vector<Instance *> _mergedInstances;
 
   // Store pin mappings: each line like "C1/D map C3/D0"
   std::vector<std::string> _pinMappings;
-
-
-
 
 private:
   // Weight factors
@@ -131,6 +134,7 @@ private:
   vector<Instance *> _pflipflops;
   unordered_map<string, Instance *> _name2pInstances_ff;
   unordered_map<string, Instance *> _name2pInstances_gate;
+  BucketList _bucket;
   // Nets
   unsigned _numNets;
   vector<Net *> _pNets;
@@ -148,15 +152,15 @@ private:
   void findFeasable_reg(Net *net, fstream &outfile, int net_count = 0);
   void print_weight_matrix(vector<vector<double> *> *weight_matrix);
   void printCliqueGraph(Graph *clique_graph);
-  void recordMergedInstance(Instance* instance,
-                                         const std::vector<std::pair<std::string, std::string>>& pinMap)
-{
+  void recordMergedInstance(Instance *instance,
+                            const std::vector<std::pair<std::string, std::string>> &pinMap)
+  {
     _mergedInstances.push_back(instance);
-    for (const auto& [src, dst] : pinMap)
+    for (const auto &[src, dst] : pinMap)
     {
-        _pinMappings.emplace_back(src + " map " + dst);
+      _pinMappings.emplace_back(src + " map " + dst);
     }
-}
+  }
 
   void parseInput(fstream &inFile)
   {
