@@ -52,10 +52,8 @@ public:
   Instance *merge2BitFF(Instance *FF1, Instance *FF2, int x, int y, int merge_num, int net_count);
   Instance *merge1BitFF(Instance *FF1, int x, int y, int merge_num, int net_count);
   unsigned _instCnt;
-  void printPlacement();
   void algorithm(std::string basename);
   void placement();
-  void printWeight();
   void printInput();
   void PrintOutfile(fstream &outfile);
   void init_occupied();
@@ -71,13 +69,7 @@ public:
     return best1bitff;
   }
   unsigned cell_instance;
-  // void set_best1bitff(CellLibrary *pCellLibrary)
-  // {
-  //   best1bitff = pCellLibrary;
-  // }
-  // void check_disjoint_set();
   void Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fstream &outfile, int net_count = 0);
-  Point2<int> find_legal_position(int row, int index);
   vector<CellLibrary *> get_bit2_ff()
   {
     return _2bitffCellLibrary;
@@ -194,8 +186,6 @@ private:
   // vector<DisSet *> _disjointSets;
   vector<CellLibrary *> _2bitffCellLibrary;
   void findFeasable_reg(Net *net, fstream &outfile, int net_count = 0);
-  void print_weight_matrix(vector<vector<double> *> *weight_matrix);
-  void printCliqueGraph(Graph *clique_graph);
   void recordMergedInstance(Instance *instance,
                             const std::vector<std::pair<std::string, std::string>> &pinMap)
   {

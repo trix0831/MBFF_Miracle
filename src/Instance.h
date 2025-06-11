@@ -60,6 +60,16 @@ public:
     _TimingSlack[pinname] = Slack;
   }
 
+  double totalTimingSlack()
+  {
+    double totalSlack = 0;
+    for (const auto &slack : _TimingSlack)
+    {
+      totalSlack += slack.second;
+    }
+    return totalSlack;
+  }
+
 private:
   string _name;
   CellLibrary *_pCellLibrary;
