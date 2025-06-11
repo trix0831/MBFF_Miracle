@@ -794,3 +794,153 @@ Point2<int> MBFFOptimizer::find_legal_position(int row, int col)
 //         cout << str << " " << instance->name() << endl;
 //     }
 // }
+
+
+double MBFFOptimizer::HPWL(vector<Instance *> *pInstances)
+{
+    double HPWL = 0.0;
+    double x_min = numeric_limits<double>::max();
+    double x_max = numeric_limits<double>::min();
+    double y_min = numeric_limits<double>::max();
+    double y_max = numeric_limits<double>::min();
+
+    for (const auto &instance : *pInstances)
+    {
+        if (instance->x() < x_min)
+            x_min = instance->x();
+        if (instance->x() + instance->pCellLibrary()->width() > x_max)
+            x_max = instance->x() + instance->pCellLibrary()->width();
+        if (instance->y() < y_min)
+            y_min = instance->y();
+        if (instance->y() + instance->pCellLibrary()->height() > y_max)
+            y_max = instance->y() + instance->pCellLibrary()->height();
+    }
+    HPWL = (x_max - x_min) + (y_max - y_min);
+    return HPWL;
+
+}
+
+double MBFFOptimizer::score(string InstanceName, int k)
+{
+    double score = 0.0;
+    double x = _name2pInstances_ff[InstanceName]->x();
+    double y = _name2pInstances_ff[InstanceName]->y();
+    int num_buckets = 400;
+    int bucket_index = floor(x / num_buckets);
+    vector<Instance*> L;
+    vector<Instance*> target;
+    
+    score += c1 / c2 * (1 / (1 + exp(_name2pInstances_ff[InstanceName]->TimingSlack("D"))));
+    return score;
+}
+
+vector<Instance*> MBFFOptimizer::findknear(string InstanceName, int k)
+{
+    vector<Instance*> L;
+    vector<Instance*> target;
+    double x = _name2pInstances_ff[InstanceName]->x();
+    double y = _name2pInstances_ff[InstanceName]->y();
+    int num_buckets = 400;
+    int bucket_index = floor(x / num_buckets);
+    for(int i = 0; i < _bucket[bucket_index].size(); i++){
+        if(_bucket[bucket_index][i]->name() == InstanceName){
+            if(i + 1 < _bucket[bucket_index].size()){
+                L.push_back(_bucket[bucket_index][i + 1]);
+            }
+            if(i - 1 >= 0){
+                L.push_back(_bucket[bucket_index][i - 1]);
+            }
+            break;
+        }
+    }
+    // Check if the bucket index is within bounds
+    if(bucket_index > _bucket.size()){
+        for(int i = 0; i < _bucket[bucket_index - 1].size(); i++){
+            if(_bucket[bucket_index - 1][i]->y() >= y){
+                L.push_back(_bucket[bucket_index - 1][i]);
+                if(i + 1 < _bucket[bucket_index - 1].size()){
+                    L.push_back(_bucket[bucket_index - 1][i + 1]);
+                }
+                if(i - 1 >= 0){
+                    L.push_back(_bucket[bucket_index - 1][i - 1]);
+                }
+                break;
+            }
+        }
+        for(int i = 0; i < _bucket[bucket_index - 2].size(); i++){
+            if(_bucket[bucket_index - 2][i]->y() >= y){
+                L.push_back(_bucket[bucket_index - 2][i]);
+                if(i + 1 < _bucket[bucket_index - 2].size()){
+                    L.push_back(_bucket[bucket_index - 2][i + 1]);
+                }
+                if(i - 1 >= 0){
+                    L.push_back(_bucket[bucket_index - 2][i - 1]);
+                }
+                break;
+            }
+        }
+    }else if(bucket_index == 0){
+        for(int i = 0; i < _bucket[bucket_index + 1].size(); i++){
+            if(_bucket[bucket_index + 1][i]->y() >= y){
+                L.push_back(_bucket[bucket_index + 1][i]);
+                if(i + 1 < _bucket[bucket_index + 1].size()){
+                    L.push_back(_bucket[bucket_index + 1][i + 1]);
+                }
+                if(i - 1 >= 0){
+                    L.push_back(_bucket[bucket_index + 1][i - 1]);
+                }
+                break;
+            }
+        }
+        for(int i = 0; i < _bucket[bucket_index + 2].size(); i++){
+            if(_bucket[bucket_index + 2][i]->y() >= y){
+                L.push_back(_bucket[bucket_index + 2][i]);
+                if(i + 1 < _bucket[bucket_index + 2].size()){
+                    L.push_back(_bucket[bucket_index + 2][i + 1]);
+                }
+                if(i - 1 >= 0){
+                    L.push_back(_bucket[bucket_index + 2][i - 1]);
+                }
+                break;
+            }
+        }
+    }else{
+        for(int i = 0; i < _bucket[bucket_index + 1].size(); i++){
+            if(_bucket[bucket_index + 1][i]->y() >= y){
+                L.push_back(_bucket[bucket_index + 1][i]);
+                if(i + 1 < _bucket[bucket_index + 1].size()){
+                    L.push_back(_bucket[bucket_index + 1][i + 1]);
+                }
+                if(i - 1 >= 0){
+                    L.push_back(_bucket[bucket_index + 1][i - 1]);
+                }
+                break;
+            }
+        }
+        for(int i = 0; i < _bucket[bucket_index - 1].size(); i++){
+            if(_bucket[bucket_index - 1][i]->y() >= y){
+                L.push_back(_bucket[bucket_index - 1][i]);
+                if(i + 1 < _bucket[bucket_index - 1].size()){
+                    L.push_back(_bucket[bucket_index - 1][i + 1]);
+                }
+                if(i - 1 >= 0){
+                    L.push_back(_bucket[bucket_index - 1][i - 1]);
+                }
+                break;
+            }
+        }
+    }
+
+    if(L.size() < k)
+    {
+        cout << "not enough elements in bucket\n";
+        return L;
+    }
+
+    // Sort the vector based on the distance to the target point
+    
+
+    return L;
+}
+
+

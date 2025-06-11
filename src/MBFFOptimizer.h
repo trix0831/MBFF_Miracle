@@ -46,6 +46,9 @@ public:
   void init_occupied();
   // void Preset();
   void set_best1bitff();
+  double score(string InstanceName, int k);
+  vector<Instance*> findknear(string InstanceName, int k);
+  double HPWL(vector<Instance *> *pInstances); 
   // void print_ff_change();
   CellLibrary *get_best1bitff()
   {
@@ -101,6 +104,8 @@ private:
   double _beta;
   double _gamma;
   double _lambda;
+  double c1 = 1;
+  double c2 = 1;
   string _outfile;
   // Die size
   Point2<double> _dieLeftBottom;
@@ -120,6 +125,7 @@ private:
   vector<Instance *> _pflipflops;
   unordered_map<string, Instance *> _name2pInstances_ff;
   unordered_map<string, Instance *> _name2pInstances_gate;
+  vector<vector<Instance*>> _bucket;
   // Nets
   unsigned _numNets;
   vector<Net *> _pNets;
