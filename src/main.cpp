@@ -3,6 +3,8 @@
 #include <vector>
 #include <time.h>
 #include "MBFFOptimizer.h"
+#include "visualizer.h"
+
 using namespace std;
 int main(int argc, char **argv)
 {
@@ -31,6 +33,9 @@ int main(int argc, char **argv)
     }
 
     MBFFOptimizer *optimizer = new MBFFOptimizer(input, argv[2]);
+    plot(optimizer->dieWidth(), optimizer->dieHeight(),
+         optimizer->name2pFFLibrary(), optimizer->name2pGateLibrary(),
+         optimizer->name2pInstances_ff(), optimizer->name2pInstances_gate());
     cout << "check" << endl;
     // optimizer->printInput();
     // optimizer->placement();

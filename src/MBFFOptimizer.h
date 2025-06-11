@@ -31,6 +31,11 @@ public:
   MBFFOptimizer(fstream &inFile, string out_file)
   {
     parseInput(inFile);
+    _bucket.setBucket(_pPlacementRows[0]->numSites() / 2, _placementRowLeftBottom.x, _placementRowRightTop.x);
+    for (auto &[name, inst] : _name2pInstances_ff)
+    {
+      _bucket.insert(inst);
+    }
     _outfile = out_file;
     cell_instance = 0;
     // best1bitff = new CellLibrary("123", "123", 1, 1000000, 1000000, 0);
@@ -39,7 +44,7 @@ public:
   ~MBFFOptimizer();
   Instance *merge2BitFF(Instance *FF1, Instance *FF2, int x, int y, int merge_num, int net_count);
   Instance *merge1BitFF(Instance *FF1, int x, int y, int merge_num, int net_count);
-  unsigned           _instCnt;
+  unsigned _instCnt;
   void printPlacement();
   void algorithm();
   void placement();
@@ -96,14 +101,36 @@ public:
     }
   };
 
-    // Store all new merged instances in order
-  std::vector<Instance*> _mergedInstances;
+  // Store all new merged instances in order
+  std::vector<Instance *> _mergedInstances;
 
   // Store pin mappings: each line like "C1/D map C3/D0"
   std::vector<std::string> _pinMappings;
 
-
-
+  double dieWidth() const
+  {
+    return _dieRightTop.x - _dieLeftBottom.x;
+  }
+  double dieHeight() const
+  {
+    return _dieRightTop.y - _dieLeftBottom.y;
+  }
+  unordered_map<string, Instance *> name2pInstances_ff()
+  {
+    return _name2pInstances_ff;
+  }
+  unordered_map<string, Instance *> name2pInstances_gate()
+  {
+    return _name2pInstances_gate;
+  }
+  unordered_map<string, CellLibrary *> name2pFFLibrary()
+  {
+    return _name2pFFLibrary;
+  }
+  unordered_map<string, CellLibrary *> name2pGateLibrary()
+  {
+    return _name2pGateLibrary;
+  }
 
 private:
   // Weight factors
@@ -155,15 +182,15 @@ private:
   void findFeasable_reg(Net *net, fstream &outfile, int net_count = 0);
   void print_weight_matrix(vector<vector<double> *> *weight_matrix);
   void printCliqueGraph(Graph *clique_graph);
-  void recordMergedInstance(Instance* instance,
-                                         const std::vector<std::pair<std::string, std::string>>& pinMap)
-{
+  void recordMergedInstance(Instance *instance,
+                            const std::vector<std::pair<std::string, std::string>> &pinMap)
+  {
     _mergedInstances.push_back(instance);
-    for (const auto& [src, dst] : pinMap)
+    for (const auto &[src, dst] : pinMap)
     {
-        _pinMappings.emplace_back(src + " map " + dst);
+      _pinMappings.emplace_back(src + " map " + dst);
     }
-}
+  }
 
   void parseInput(fstream &inFile)
   {
