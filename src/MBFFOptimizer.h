@@ -32,9 +32,9 @@ public:
   {
     parseInput(inFile);
     _bucket.setBucket(_pPlacementRows[0]->numSites() / 2, _placementRowLeftBottom.x, _placementRowRightTop.x);
-    for (Instance *instance : _pflipflops)
+    for (auto &[name, inst] : _name2pInstances_ff)
     {
-      _bucket.insert(instance);
+      _bucket.insert(inst);
     }
     _outfile = out_file;
     cell_instance = 0;
