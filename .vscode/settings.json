@@ -64,7 +64,10 @@
         "streambuf": "cpp",
         "thread": "cpp",
         "cinttypes": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "codecvt": "cpp",
+        "iomanip": "cpp",
+        "unordered_set": "cpp"
     }
 >>>>>>> ab06a8db97131f35f2b1c08cc72d765fefd67b1a
 }
