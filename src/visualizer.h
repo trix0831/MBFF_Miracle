@@ -37,8 +37,11 @@ void plotMacro(cairo_t* cr, const Point& originDBU,
                const std::array<double, 3>& fillRGB);
 
 // Main plotting function for FF and gate instances
-void plot(int width, int height,
-          std::unordered_map<std::string, CellLibrary*> name2ffLib,
-          std::unordered_map<std::string, CellLibrary*> name2gateLib,
+void plotInit(int width, int height,
           std::unordered_map<std::string, Instance*> name2inst_ff,
-          std::unordered_map<std::string, Instance*> name2inst_gate);
+          std::unordered_map<std::string, Instance*> name2inst_gate, std::string caseName );
+
+void plotMerge(int width, int height,
+          std::unordered_map<std::string, Instance*> name2inst_ff,
+          std::unordered_map<std::string, Instance*> name2inst_gate,
+          std::vector<Instance*> mergedInstances, std::string caseName, int frame);

@@ -1,5 +1,6 @@
 #include "MBFFOptimizer.h"
 #include <algorithm>
+#include "visualizer.h"
 
 // Assuming 2bifffLibrary is a vector of BiFFFLibrary objects
 
@@ -190,7 +191,6 @@ void MBFFOptimizer::PrintOutfile(fstream &outfile)
                              + to_string(_instCnt++) 
                              + "_unmerged";
             inst->setName(newName);
-            inst->merged = true; // mark it as merged
 
             // push it into the merged list so it's printed below
             _mergedInstances.push_back(inst);
@@ -430,12 +430,37 @@ void MBFFOptimizer::print_weight_matrix(vector<vector<double> *> *weight_matrix)
         cout << endl;
     }
 }
-void MBFFOptimizer::algorithm()
+void MBFFOptimizer::algorithm(std::string baseName)
 {
     fstream outfile; // open file in write mode
     outfile.open(_outfile, ios::out);
     int net_count = 0;
     bool all_clk = true;    // we have to check all output pins are clk case
+
+    //plot every 10% of net
+    int count = 0;
+    for (auto net : _pNets)
+    {
+        all_clk = true;
+        if (net->numPins() <= 1) continue;
+
+        for (unsigned int i = 1; i < net->numPins(); i++)
+        {
+            if (net->pin(i).pin->name() != "CLK")
+            {
+                all_clk = false;
+                break;
+            }
+        }
+
+        if (all_clk)
+            count++;
+    }
+
+    int ploting_interval = count / 10;
+    std::cout << "Total nets to process: " << count <<", interval: " << ploting_interval<< "\n";
+    count = 0; // reset count for plotting progress
+
     for (auto net : _pNets) // at each net, we have to redo weight_matrix and at the end of
     {
         // cout << "123" << endl;
@@ -461,7 +486,17 @@ void MBFFOptimizer::algorithm()
             net_count++;
             findFeasable_reg(net, outfile, net_count);
         }
+
+        count++;
+
+        if (count % ploting_interval == 0)
+        {
+            std::cout << "Plotting progress: " << count/ploting_interval*10 << "%\n";
+            plotMerge(dieWidth(), dieHeight(), _name2pInstances_ff, _name2pInstances_gate, _mergedInstances, baseName, count /ploting_interval);
+        }
     }
+
+    std::cout << "Total nets processed: " << count << "\n";
 
     PrintOutfile(outfile);
     // reset all placementRow

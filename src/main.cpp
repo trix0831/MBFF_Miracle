@@ -32,22 +32,27 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    MBFFOptimizer *optimizer = new MBFFOptimizer(input, argv[2]);
-    plot(optimizer->dieWidth(), optimizer->dieHeight(),
-         optimizer->name2pFFLibrary(), optimizer->name2pGateLibrary(),
-         optimizer->name2pInstances_ff(), optimizer->name2pInstances_gate());
-    cout << "check" << endl;
-    // optimizer->printInput();
-    // optimizer->placement();
+    std::string inputPath = argv[1];
+    // Step 1: Extract file name (without directory)
+    size_t lastSlash = inputPath.find_last_of("/\\");
+    std::string fileName = (lastSlash == std::string::npos) ? inputPath : inputPath.substr(lastSlash + 1);
 
-    // optimizer->check_disjoint_set();
+    // Step 2: Remove extension
+    size_t lastDot = fileName.find_last_of('.');
+    std::string baseName = (lastDot == std::string::npos) ? fileName : fileName.substr(0, lastDot);
+
+    MBFFOptimizer *optimizer = new MBFFOptimizer(input, argv[2]);
+    plotInit(optimizer->dieWidth(), optimizer->dieHeight(),
+         optimizer->name2pInstances_ff(), optimizer->name2pInstances_gate(), baseName);
+    cout << "check" << endl;
+
     optimizer->init_occupied();
 
-    // cout << "123444\n";
-    // optimizer->printPlacement();
-    // optimizer->printWeight();
-    optimizer->algorithm();
-    // optimizer->print_ff_change();
+    optimizer->algorithm(baseName);
+
+    plotMerge(optimizer->dieWidth(), optimizer->dieHeight(),
+         optimizer->name2pInstances_ff(), optimizer->name2pInstances_gate(), optimizer->_mergedInstances, baseName, 0);
+
     cout << "total runtime: " << (double)clock() / CLOCKS_PER_SEC << " seconds" << endl;
 
     return 0;
