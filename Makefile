@@ -1,7 +1,7 @@
 CC = g++
 CXXFLAGS = -std=c++17 -O3 -Wall `pkg-config --cflags cairo`
 LDFLAGS = `pkg-config --libs cairo`
-SOURCES = src/Pin.cpp src/MBFFOptimizer.cpp src/main.cpp src/visualizer.cpp
+SOURCES = src/MBFFOptimizer.cpp src/main.cpp src/visualizer.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 EXECUTABLE = mbff
 INCLUDES = src/MBFFOptimizer.h
