@@ -78,6 +78,7 @@ public:
   double HPWL(vector<Instance *> *pInstances); 
   // void print_ff_change();
   unsigned cell_instance;
+  Instance* mergeMultiFF(const std::vector<Instance*>& FFs, int x, int y, int merge_num, int net_count);
   void Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fstream &outfile, int net_count = 0);
   vector<CellLibrary *> get_bit2_ff()
   {

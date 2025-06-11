@@ -1,0 +1,38 @@
+[INFO] FF1 Checkers:
+  FF7 - Area: 3.5568e+07, Power: 0.1, TNS: 0.027851, Score: 4028.73
+  FF10 - Area: 3.5568e+07, Power: 0.1, TNS: 0.035931, Score: 4028.81
+  FF17 - Area: 3.8304e+07, Power: 0.1, TNS: 0.035569, Score: 4031
+  FF1 - Area: 3.8304e+07, Power: 0.1, TNS: 0.036659, Score: 4031.01
+  FF23 - Area: 4.104e+07, Power: 0.1, TNS: 0.026256, Score: 4033.09
+  FF22 - Area: 4.104e+07, Power: 0.1, TNS: 0.027576, Score: 4033.11
+  FF6 - Area: 4.104e+07, Power: 0.1, TNS: 0.037738, Score: 4033.21
+  FF18 - Area: 4.3776e+07, Power: 0.1, TNS: 0.032307, Score: 4035.34
+  FF20 - Area: 4.3776e+07, Power: 0.1, TNS: 0.038887, Score: 4035.41
+  FF19 - Area: 4.6512e+07, Power: 0.1, TNS: 0.031864, Score: 4037.53
+  FF11 - Area: 4.6512e+07, Power: 0.1, TNS: 0.036109, Score: 4037.57
+  FF15 - Area: 4.9248e+07, Power: 0.1, TNS: 0.029252, Score: 4039.69
+  FF24 - Area: 4.9248e+07, Power: 0.1, TNS: 0.032857, Score: 4039.73
+  FF12 - Area: 4.9248e+07, Power: 0.1, TNS: 0.037615, Score: 4039.77
+  FF5 - Area: 4.9248e+07, Power: 0.1, TNS: 0.038367, Score: 4039.78
+  FF9 - Area: 4.9248e+07, Power: 0.1, TNS: 0.044673, Score: 4039.85
+  FF3 - Area: 5.1984e+07, Power: 0.1, TNS: 0.032677, Score: 4041.91
+  FF14 - Area: 5.472e+07, Power: 0.1, TNS: 0.024045, Score: 4044.02
+  FF4 - Area: 5.472e+07, Power: 0.1, TNS: 0.032455, Score: 4044.1
+  FF13 - Area: 5.7456e+07, Power: 0.1, TNS: 0.028358, Score: 4046.25
+  FF21 - Area: 5.7456e+07, Power: 0.1, TNS: 0.033492, Score: 4046.3
+  FF2 - Area: 6.0192e+07, Power: 0.1, TNS: 0.03302, Score: 4048.48
+  FF16 - Area: 6.0192e+07, Power: 0.1, TNS: 0.041525, Score: 4048.57
+  FF8 - Area: 7.1136e+07, Power: 0.1, TNS: 0.0338, Score: 4057.25
+[INFO] FF2 Checkers:
+  FF25 - Area: 6.5664e+07, Power: 0.05, TNS: 0.041122, Score: 2052.94
+  FF26 - Area: 6.5664e+07, Power: 0.05, TNS: 0.042156, Score: 2052.95
+  FF27 - Area: 6.5664e+07, Power: 0.05, TNS: 0.047336, Score: 2053
+  FF28 - Area: 7.1136e+07, Power: 0.05, TNS: 0.048382, Score: 2057.39
+[INFO] FF4 Checkers:
+  FF29 - Area: 1.31328e+08, Power: 0.025, TNS: 0.041291, Score: 1105.48
+  FF30 - Area: 1.31328e+08, Power: 0.025, TNS: 0.041556, Score: 1105.48
+  FF34 - Area: 1.31328e+08, Power: 0.025, TNS: 0.048742, Score: 1105.55
+  FF35 - Area: 1.42272e+08, Power: 0.025, TNS: 0.053544, Score: 1114.35
+  FF31 - Area: 1.53216e+08, Power: 0.025, TNS: 0.036077, Score: 1122.93
+  FF32 - Area: 1.53216e+08, Power: 0.025, TNS: 0.037392, Score: 1122.95
+  FF33 - Area: 1.53216e+08, Power: 0.025, TNS: 0.054164, Score: 1123.11

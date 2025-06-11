@@ -159,41 +159,58 @@ void MBFFOptimizer::initFFChecker() {
         return areaA < areaB;
     };
 
-    double maxVal = std::max({_alpha, _beta, _gamma});
-    double expAlpha = std::exp(_alpha - maxVal);
-    double expBeta  = std::exp(_beta  - maxVal);
-    double expGamma = std::exp(_gamma - maxVal);
-    double sum = expAlpha + expBeta + expGamma;
-
-    double normAlpha = expAlpha / sum;
-    double normBeta  = expBeta  / sum;
-    double normGamma = expGamma / sum;
-
     auto scoreCmp = [&](const std::pair<Point2<int>, std::string>& a,
                        const std::pair<Point2<int>, std::string>& b) {
         double areaA = _name2pFFLibrary[a.second]->area();
         double areaB = _name2pFFLibrary[b.second]->area();
         double powerA = _name2pFFLibrary[a.second]->gatePower();
         double powerB = _name2pFFLibrary[b.second]->gatePower();
-        double scoreA = _gamma*areaA + _beta*powerA; // Adjust power weight as needed
-        double scoreB = _gamma*areaB + _beta*powerB; // Adjust power weight as needed
+        double tnsA = _name2pFFLibrary[a.second]->qPinDelay();
+        double tnsB = _name2pFFLibrary[b.second]->qPinDelay();
+        double scoreA = _gamma*areaA + _beta*powerA + _alpha*tnsA; // Adjust power weight as needed
+        double scoreB = _gamma*areaB + _beta*powerB + _alpha*tnsB; // Adjust power weight as needed
         return scoreA < scoreB;
     };
 
-    std::cout <<"checker 1 size" << FF1Checker.size() << std::endl;
-
     auto sorter = scoreCmp;
-    auto keepTopHalf = [](auto& checker, auto& cmp) {
-        std::sort(checker.begin(), checker.end(), cmp);
-        // size_t keepSize = (checker.size() / 3) >10 ? (checker.size() / 3) : 10; // Keep at least 5 or 20% of the elements
-        size_t keepSize = checker.size();
-        checker.resize(keepSize);
-    };
+    std::sort(FF1Checker.begin(), FF1Checker.end(), sorter);
+    std::sort(FF2Checker.begin(), FF2Checker.end(), sorter);
+    std::sort(FF4Checker.begin(), FF4Checker.end(), sorter);
 
-    keepTopHalf(FF1Checker, sorter);
-    keepTopHalf(FF2Checker, sorter);
-    keepTopHalf(FF4Checker, sorter);
-    std::cout <<"checker 1 size" << FF1Checker.size() << std::endl;
+    //print all name and score in each checker
+    std::cout << "[INFO] FF1 Checkers:\n";
+    for (const auto& [gridSize, cellName] : FF1Checker) {
+        double area = _name2pFFLibrary[cellName]->area();
+        double power = _name2pFFLibrary[cellName]->gatePower();
+        double tns = _name2pFFLibrary[cellName]->qPinDelay();
+        double score = _gamma * area + _beta * power + _alpha * tns;
+        std::cout << "  " << cellName << " - Area: " << area
+                  << ", Power: " << power
+                  << ", TNS: " << tns
+                  << ", Score: " << score << "\n";
+    }
+    std::cout << "[INFO] FF2 Checkers:\n";
+    for (const auto& [gridSize, cellName] : FF2Checker) {
+        double area = _name2pFFLibrary[cellName]->area();
+        double power = _name2pFFLibrary[cellName]->gatePower();
+        double tns = _name2pFFLibrary[cellName]->qPinDelay();
+        double score = _gamma * area + _beta * power + _alpha * tns;
+        std::cout << "  " << cellName << " - Area: " << area
+                  << ", Power: " << power
+                  << ", TNS: " << tns
+                  << ", Score: " << score << "\n";
+    }
+    std::cout << "[INFO] FF4 Checkers:\n";
+    for (const auto& [gridSize, cellName] : FF4Checker) {
+        double area = _name2pFFLibrary[cellName]->area();
+        double power = _name2pFFLibrary[cellName]->gatePower();
+        double tns = _name2pFFLibrary[cellName]->qPinDelay();
+        double score = _gamma * area + _beta * power + _alpha * tns;
+        std::cout << "  " << cellName << " - Area: " << area
+                  << ", Power: " << power
+                  << ", TNS: " << tns
+                  << ", Score: " << score << "\n";
+    }
 }
 
 
@@ -258,50 +275,63 @@ void MBFFOptimizer::init_occupied() {
 
 void MBFFOptimizer::PrintOutfile(fstream &outfile)
 {
-    // //transverse through all the instances, if instance->merged is false, give it a new name and pushback as those mergedInstances
-    for (auto & [origName, inst] : _name2pInstances_ff)
+    std::unordered_map<std::string, int> ffUsageCount;
+
+    // Traverse all original FFs and emit unmerged ones
+    for (auto& [origName, inst] : _name2pInstances_ff)
     {
         if (!inst->merged)
         {
-            // give it a fresh new_inst_... name
-            string newName = "new_inst_" 
-                             + to_string(_instCnt++) 
-                             + "_unmerged";
+            // Give it a fresh new_inst_... name
+            std::string newName = "new_inst_" + std::to_string(_instCnt++) + "_unmerged";
             inst->setName(newName);
 
-            // push it into the merged list so it's printed below
-            placeLegal(inst, Point2<int>(floor((inst->y() - _pPlacementRows[0]->y()) / _pPlacementRows[0]->height()),
-                                                        floor((inst->x() - _pPlacementRows[0]->x()) / _pPlacementRows[0]->width())));
+            // Place legally
+            placeLegal(inst, Point2<int>(
+                std::floor((inst->y() - _pPlacementRows[0]->y()) / _pPlacementRows[0]->height()),
+                std::floor((inst->x() - _pPlacementRows[0]->x()) / _pPlacementRows[0]->width()))
+            );
             _mergedInstances.push_back(inst);
 
-            // if you need pin-mapping lines, do it here:
+            // Record pin mapping
             int bitWidth = inst->pCellLibrary()->numBits();
-
-            // Map D and Q pins (e.g., D, D0~D3)
             for (int i = 0; i < bitWidth; ++i) {
-                std::string dName = (bitWidth == 1) ? "D"  : "D" + std::to_string(i);
-                std::string qName = (bitWidth == 1) ? "Q"  : "Q" + std::to_string(i);
-
+                std::string dName = (bitWidth == 1) ? "D" : "D" + std::to_string(i);
+                std::string qName = (bitWidth == 1) ? "Q" : "Q" + std::to_string(i);
                 _pinMappings.emplace_back(origName + "/" + dName + " map " + newName + "/" + dName);
                 _pinMappings.emplace_back(origName + "/" + qName + " map " + newName + "/" + qName);
             }
-
-            // Always map CLK
             _pinMappings.emplace_back(origName + "/CLK map " + newName + "/CLK");
         }
     }
 
+    // Write all merged instances to file
     outfile << "CellInst " << _mergedInstances.size() << "\n";
     for (auto* inst : _mergedInstances)
     {
         outfile << "Inst " << inst->name() << " "
                 << inst->pCellLibrary()->name() << " "
                 << inst->x() << " " << inst->y() << "\n";
+
+        // Count FF type
+        ffUsageCount[inst->pCellLibrary()->name()]++;
     }
+
+    // Write pin mappings
     for (const std::string& line : _pinMappings)
     {
         outfile << line << "\n";
     }
+
+    // Print FF usage summary
+    std::cout << "\n[FF Usage Summary]\n";
+    for (const auto& [ffName, count] : ffUsageCount)
+    {
+        //name and width and height
+        std::cout << "  " << ffName << " " << _name2pFFLibrary[ffName]->width() << "x" 
+                  << _name2pFFLibrary[ffName]->height() << " : " << count << "\n";
+    }
+    std::cout << std::endl;
 }
 
 void MBFFOptimizer::Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fstream &outfile, int net_count)
@@ -710,6 +740,7 @@ void MBFFOptimizer::printInput()
 
 
 Instance* MBFFOptimizer::merge2FF(Instance* FF1, Instance* FF2, int x, int y, int merge_num, int net_count) {
+    // std::cout << "[INFO] Merging FFs: " << FF1->name() << " and " << FF2->name() << "\n";
     int attempts = 0;
     Point2<int> placement_point;
     int placement_X, placement_Y;

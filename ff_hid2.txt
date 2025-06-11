@@ -1,0 +1,38 @@
+FF1 Checker:
+  FF7: area = 3.5568e+07, power = 0.1, score = 4028.45
+  FF10: area = 3.5568e+07, power = 0.1, score = 4028.45
+  FF1: area = 3.8304e+07, power = 0.1, score = 4030.64
+  FF17: area = 3.8304e+07, power = 0.1, score = 4030.64
+  FF6: area = 4.104e+07, power = 0.1, score = 4032.83
+  FF22: area = 4.104e+07, power = 0.1, score = 4032.83
+  FF23: area = 4.104e+07, power = 0.1, score = 4032.83
+  FF20: area = 4.3776e+07, power = 0.1, score = 4035.02
+  FF18: area = 4.3776e+07, power = 0.1, score = 4035.02
+  FF11: area = 4.6512e+07, power = 0.1, score = 4037.21
+  FF19: area = 4.6512e+07, power = 0.1, score = 4037.21
+  FF5: area = 4.9248e+07, power = 0.1, score = 4039.4
+  FF15: area = 4.9248e+07, power = 0.1, score = 4039.4
+  FF24: area = 4.9248e+07, power = 0.1, score = 4039.4
+  FF9: area = 4.9248e+07, power = 0.1, score = 4039.4
+  FF12: area = 4.9248e+07, power = 0.1, score = 4039.4
+  FF3: area = 5.1984e+07, power = 0.1, score = 4041.59
+  FF14: area = 5.472e+07, power = 0.1, score = 4043.78
+  FF4: area = 5.472e+07, power = 0.1, score = 4043.78
+  FF13: area = 5.7456e+07, power = 0.1, score = 4045.96
+  FF21: area = 5.7456e+07, power = 0.1, score = 4045.96
+  FF16: area = 6.0192e+07, power = 0.1, score = 4048.15
+  FF2: area = 6.0192e+07, power = 0.1, score = 4048.15
+  FF8: area = 7.1136e+07, power = 0.1, score = 4056.91
+FF2 Checker:
+  FF27: area = 6.5664e+07, power = 0.05, score = 2052.53
+  FF25: area = 6.5664e+07, power = 0.05, score = 2052.53
+  FF26: area = 6.5664e+07, power = 0.05, score = 2052.53
+  FF28: area = 7.1136e+07, power = 0.05, score = 2056.91
+FF4 Checker:
+  FF30: area = 1.31328e+08, power = 0.025, score = 1105.06
+  FF34: area = 1.31328e+08, power = 0.025, score = 1105.06
+  FF29: area = 1.31328e+08, power = 0.025, score = 1105.06
+  FF35: area = 1.42272e+08, power = 0.025, score = 1113.82
+  FF33: area = 1.53216e+08, power = 0.025, score = 1122.57
+  FF31: area = 1.53216e+08, power = 0.025, score = 1122.57
+  FF32: area = 1.53216e+08, power = 0.025, score = 1122.57
