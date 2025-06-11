@@ -333,7 +333,6 @@ Instance *MBFFOptimizer::merge1BitFF(Instance *FF1, int x, int y, int merge_num,
 
 void MBFFOptimizer::placement()
 {
-
     for (const auto &[key, instance] : _name2pInstances_ff) // FF placed, -1000 for weight
     {
         Point2<double> LEFTBOTTOM = Point2<double>(instance->x(), instance->y());
@@ -990,7 +989,6 @@ Point2<int> MBFFOptimizer::find_legal_position(int row, int col)
     }
     cout << "no legal position found\n";
     return Point2<int>(-1, -1);
-<<<<<<< HEAD
 }
 // void MBFFOptimizer::print_ff_change()
 // {
@@ -1175,6 +1173,3 @@ vector<Instance*> MBFFOptimizer::findknear(string InstanceName, int k)
 }
 
 
-=======
-}
->>>>>>> origin/trix-cool-branch
