@@ -23,6 +23,7 @@
 #include "DisSet.h"
 #include <algorithm>
 #include "BucketList.h"
+#include <vector>
 using namespace std;
 
 class MBFFOptimizer
@@ -38,6 +39,7 @@ public:
     }
     _outfile = out_file;
     cell_instance = 0;
+    init_occupied();
     // best1bitff = new CellLibrary("123", "123", 1, 1000000, 1000000, 0);
   }
 
@@ -52,9 +54,10 @@ public:
   void printInput();
   void PrintOutfile(fstream &outfile);
   void init_occupied();
-  // void Preset();
+  bool placeLegal(Instance *instance, Point2<int> desPos);// input instance and the placement point
+  void initFFChecker();
   void set_best1bitff();
-  // void print_ff_change();
+  
   CellLibrary *get_best1bitff()
   {
     return best1bitff;
@@ -129,7 +132,13 @@ public:
     return _name2pGateLibrary;
   }
 
+
 private:
+  std::vector<std::vector<bool>> _occupiedMask;
+  std::vector<std::pair<Point2<int>, std::string>> FF1Checker;
+  std::vector<std::pair<Point2<int>, std::string>> FF2Checker;
+  std::vector<std::pair<Point2<int>, std::string>> FF4Checker;
+
   // Weight factors
   void DFS(unordered_map<row_index_pair, vector<Instance *>, row_index_pair_hash> *occupied,
            Point2<double> point, vector<vector<bool> *> *visited,

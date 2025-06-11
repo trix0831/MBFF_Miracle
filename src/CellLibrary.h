@@ -29,6 +29,9 @@ public:
   double qPinDelay() { return _qPinDelay; }
   double gatePower() { return _gatePower; }
   unordered_map<string, CellLibraryPin *> name2pPins() { return _name2pPins; }
+  double area() {
+    return _width * _height;
+  }
 
   /////////////////////////////////////////////
   // set

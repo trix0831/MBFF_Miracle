@@ -4,6 +4,134 @@
 
 // Assuming 2bifffLibrary is a vector of BiFFFLibrary objects
 
+bool MBFFOptimizer::placeLegal(Instance* inst, Point2<int> desPos ) { // despos is grid position
+    vector<Point2<int>> candidates;
+    vector<Point2<int>> prevCandidates;
+    candidates.push_back(desPos);
+    int count = 0;
+
+    auto isLegal = [&](int row, int col, int h, int w) -> bool {
+        if (row + h > static_cast<int>(_occupiedMask.size()) ||
+            col + w > static_cast<int>(_occupiedMask[0].size()))
+            return false;
+
+        for (int r = row; r < row + h; ++r) {
+            for (int c = col; c < col + w; ++c) {
+                if (_occupiedMask[r][c]) return false;
+            }
+        }
+        return true;
+    };
+
+    auto markOccupied = [&](int row, int col, int h, int w) {
+        for (int r = row; r < row + h; ++r) {
+            for (int c = col; c < col + w; ++c) {
+                _occupiedMask[r][c] = true;
+            }
+        }
+    };
+
+    while (count < 15) {
+        prevCandidates = candidates;
+        candidates.clear();
+
+        for (auto& candidate : prevCandidates) {
+            int row = candidate.x;
+            int col = candidate.y;
+
+            const auto& lib = inst->pCellLibrary();
+            int bit = lib->numBits();
+
+            std::vector<std::pair<Point2<int>, std::string>>* checker = nullptr;
+            if (bit == 1) checker = &FF1Checker;
+            else if (bit == 2) checker = &FF2Checker;
+            else if (bit == 4) checker = &FF4Checker;
+            else continue;
+
+            for (const auto& [gridSize, cellName] : *checker) {
+                int h = gridSize.y;
+                int w = gridSize.x;
+
+                if (isLegal(row, col, h, w)) {
+                    // Legal position found
+                    inst->setX(_pPlacementRows[0]->x() + col * _pPlacementRows[0]->width());
+                    inst->setY(_pPlacementRows[row]->x());
+                    markOccupied(row, col, h, w);
+                    return true;
+                }
+            }
+        }
+
+        // Expand BFS: add adjacent cells
+        for (auto& pos : prevCandidates) {
+            std::vector<Point2<int>> neighbors = {
+                {pos.x + 1, pos.y}, {pos.x - 1, pos.y},
+                {pos.x, pos.y + 1}, {pos.x, pos.y - 1}
+            };
+            for (auto& next : neighbors) {
+                if (next.x >= 0 && next.y >= 0 &&
+                    next.x < static_cast<int>(_occupiedMask.size()) &&
+                    next.y < static_cast<int>(_occupiedMask[0].size())) {
+                    candidates.push_back(next);
+                }
+            }
+        }
+
+        ++count;
+    }
+
+    std::cout << "Cannot find legal placement for instance: " << inst->name() << std::endl;
+    return false;
+}
+
+void MBFFOptimizer::initFFChecker() {
+    FF1Checker.clear();
+    FF2Checker.clear();
+    FF4Checker.clear();
+
+    auto computeGridSize = [&](CellLibrary* lib) -> Point2<int> {
+        int gridW = static_cast<int>(std::ceil(lib->width() / _pPlacementRows[0]->width()));
+        int gridH = static_cast<int>(std::ceil(lib->height() / _pPlacementRows[0]->height()));
+        return Point2<int>(gridW, gridH);
+    };
+
+    for (const auto& [cellName, lib] : _name2pFFLibrary) {
+        int bitCount = lib->numBits();
+        Point2<int> gridSize = computeGridSize(lib);
+
+        if (bitCount == 1) {
+            FF1Checker.emplace_back(gridSize, cellName);
+        } else if (bitCount == 2) {
+            FF2Checker.emplace_back(gridSize, cellName);
+        } else if (bitCount == 4) {
+            FF4Checker.emplace_back(gridSize, cellName);
+        }
+    }
+
+    auto areaCmp = [&](const std::pair<Point2<int>, std::string>& a,
+                       const std::pair<Point2<int>, std::string>& b) {
+        double areaA = _name2pFFLibrary[a.second]->area();
+        double areaB = _name2pFFLibrary[b.second]->area();
+        return areaA < areaB;
+    };
+
+    std::sort(FF1Checker.begin(), FF1Checker.end(), areaCmp);
+    std::sort(FF2Checker.begin(), FF2Checker.end(), areaCmp);
+    std::sort(FF4Checker.begin(), FF4Checker.end(), areaCmp);
+}
+
+
+
+void MBFFOptimizer::init_occupied() {
+size_t numRows = _pPlacementRows.size();
+size_t numSitesPerRow = (numRows > 0) ? _pPlacementRows[0]->numSites() : 0;
+
+_occupiedMask.resize(numRows);
+for (size_t row = 0; row < numRows; ++row) {
+    _occupiedMask[row].resize(numSitesPerRow, false); // all unoccupied
+}
+}
+
 void Union(DisSet *b, DisSet *c)
 {
     if (b->size() >= b->size())
@@ -803,11 +931,3 @@ Point2<int> MBFFOptimizer::find_legal_position(int row, int col)
     cout << "no legal position found\n";
     return Point2<int>(-1, -1);
 }
-// void MBFFOptimizer::print_ff_change()
-// {
-//     cout << "\nPrint Output\n";
-//     for (const auto &[str, instance] : output_map)
-//     {
-//         cout << str << " " << instance->name() << endl;
-//     }
-// }
