@@ -217,7 +217,7 @@ private:
         _gamma = stod(input_string[1]);
         // cout << "input Gamma" << endl;
       }
-      else if (input_string[0] == "Lambda")
+      else if (input_string[0] == "Lambda") // Not used in 2025 CAD B
       {
         _lambda = stod(input_string[1]);
         // cout << "input lambda" << endl;
