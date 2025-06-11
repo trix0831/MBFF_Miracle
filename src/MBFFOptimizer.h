@@ -44,13 +44,27 @@ public:
     _outfile = out_file;
     cell_instance = 0;
     init_occupied();
-    initFFChecker();
-    // best1bitff = new CellLibrary("123", "123", 1, 1000000, 1000000, 0);
+    initFFChecker();    
+
+    //set all instance cell library to the best ff
+    for (auto &[name, inst] : _name2pInstances_ff){
+      if (inst->pCellLibrary()->numBits() == 1)
+      {
+        inst->setCellLibrary(_name2pFFLibrary[FF1Checker[0].second]);
+      }
+      else if (inst->pCellLibrary()->numBits() == 2)
+      {
+        inst->setCellLibrary(_name2pFFLibrary[FF2Checker[0].second]);
+      }
+      else if (inst->pCellLibrary()->numBits() == 4)
+      {
+        inst->setCellLibrary(_name2pFFLibrary[FF4Checker[0].second]);
+      }
+    }
   }
 
   ~MBFFOptimizer();
   Instance *merge2FF(Instance *FF1, Instance *FF2, int x, int y, int merge_num, int net_count);
-  Instance *merge1BitFF(Instance *FF1, int x, int y, int merge_num, int net_count);
   unsigned _instCnt;
   void algorithm(std::string basename);
   void placement();
@@ -59,15 +73,10 @@ public:
   void init_occupied();
   bool placeLegal(Instance *instance, Point2<int> desPos);// input instance and the placement point
   void initFFChecker();
-  void set_best1bitff();
   double score(string InstanceName, int k);
   vector<Instance*> findknear(string InstanceName, int k);
   double HPWL(vector<Instance *> *pInstances); 
   // void print_ff_change();
-  CellLibrary *get_best1bitff()
-  {
-    return best1bitff;
-  }
   unsigned cell_instance;
   void Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fstream &outfile, int net_count = 0);
   vector<CellLibrary *> get_bit2_ff()
@@ -182,8 +191,6 @@ private:
   vector<PlacementRow *> _pPlacementRows;
   // Displacement delay
   double _displacementDelay;
-  CellLibrary *best1bitff;
-  // vector<DisSet *> _disjointSets;
   vector<CellLibrary *> _2bitffCellLibrary;
   void findFeasable_reg(Net *net, fstream &outfile, int net_count = 0);
   void recordMergedInstance(Instance *instance,
@@ -497,7 +504,6 @@ private:
     // cout << _placementRowLeftBottom.x << " " << _placementRowLeftBottom.y << endl;
     // cout << _placementRowRightTop.x << " " << _placementRowRightTop.y << endl;
     cout << "Parsing input done" << endl;
-    set_best1bitff();
 
     // cout << "123" << endl;
     // cout << _pNets[0]->pin(0)->name() << endl;

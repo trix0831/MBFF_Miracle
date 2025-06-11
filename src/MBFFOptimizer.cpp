@@ -255,59 +255,6 @@ void MBFFOptimizer::init_occupied() {
 }
 
 
-void MBFFOptimizer::set_best1bitff()
-
-{
-
-    if (best1bitff == nullptr)
-    {
-        best1bitff = new CellLibrary("best1bitff", "", 1, 1000000, 1000000, 1, 1, 1);
-    }
-    for (auto &[name, cell] : _name2pFFLibrary)
-    {
-        if (cell->numBits() == 1)
-        {
-            double area = cell->width() * cell->height();
-            if (area <= get_best1bitff()->width() * get_best1bitff()->height())
-            {
-                best1bitff = cell;
-            }
-        }
-    }
-}
-Instance *MBFFOptimizer::merge1BitFF(Instance *FF1, int x, int y, int merge_num, int net_count)
-{
-    // output Flipflop
-    // pint points
-    int placement_X = x; // output placement points
-    int placement_Y = y;
-
-    string name = "new_inst_" + to_string(_instCnt++) + "_" + to_string(net_count) + "_" + to_string(merge_num);
-    // Instance *outputFF = nullptr;
-    // cout << "check\n";
-    CellLibrary *bestFF = get_best1bitff();
-    // cout << bestFF->name() << endl;
-    // cout << "check\n";
-
-    Instance *outputFF = new Instance(name, bestFF, placement_X, placement_Y, bestFF->numPins());
-
-    int d0_x = placement_X + bestFF->pPin("D")->x();
-    int d0_y = placement_Y + bestFF->pPin("D")->y();
-    // cout << d0_x << " " << d0_y << endl;
-
-    InstancePin *D = new InstancePin("", "D", d0_x, d0_y, 0);
-    outputFF->addPin(D);
-
-    int q0_x = placement_X + bestFF->pPin("Q")->x();
-    int q0_y = placement_Y + bestFF->pPin("Q")->y();
-
-    InstancePin *Q = new InstancePin("", "Q", q0_x, q0_y, 0);
-    outputFF->addPin(Q);
-
-    return outputFF;
-}
-
-
 
 void MBFFOptimizer::PrintOutfile(fstream &outfile)
 {
