@@ -439,8 +439,8 @@ void MBFFOptimizer::Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fs
             std::sort(neighList.begin(), neighList.end(),
                       [Sets](const NeighInfo &a, const NeighInfo &b)
                       {
-                          return Sets->at(a.setIdx)->getInstances()->name2pPins()["D"]->timingSlack() >
-                                 Sets->at(b.setIdx)->getInstances()->name2pPins()["D"]->timingSlack();
+                          return Sets->at(a.setIdx)->getInstances()->totalTimingSlack() >
+                                 Sets->at(b.setIdx)->getInstances()->totalTimingSlack();
                       });
             // for (int i = 0; i < neighList.size(); i++)
             // {
