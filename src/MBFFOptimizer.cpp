@@ -287,12 +287,13 @@ void MBFFOptimizer::PrintOutfile(fstream &outfile)
             // Record pin mapping
             int bitWidth = inst->pCellLibrary()->numBits();
             for (int i = 0; i < bitWidth; ++i) {
-                std::string dName = (bitWidth == 1) ? "D" : "D" + std::to_string(i);
-                std::string qName = (bitWidth == 1) ? "Q" : "Q" + std::to_string(i);
+                std::string dName = (bitWidth == 1) ? "D"  : "D"  + std::to_string(i);
+                std::string qName = (bitWidth == 1) ? "Q"  : "Q"  + std::to_string(i);
+
                 _pinMappings.emplace_back(origName + "/" + dName + " map " + newName + "/" + dName);
                 _pinMappings.emplace_back(origName + "/" + qName + " map " + newName + "/" + qName);
             }
-            _pinMappings.emplace_back(origName + "/CLK map " + newName + "/CLK");
+            _pinMappings.emplace_back(origName + "/CLK map " + newName + "/CLK");         
         }
     }
 
@@ -458,30 +459,36 @@ void MBFFOptimizer::Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fs
                     inst1->merged = true;
                     inst2->merged = true;
 
-                    // Generate pin mappings for all data bits
-                    int bitCount = instance->pCellLibrary()->numBits();
-                    for (int i = 0; i < bitCount; ++i) {
-                        std::string dPin = "D" + std::to_string(i);
-                        std::string qPin = "Q" + std::to_string(i);
-                        std::string origD, origQ, origCLK;
+                    int dIndex = 0;
+                    int qIndex = 0;
 
-                        if (i == 0) {
-                            origD = inst1->name() + "/D";
-                            origQ = inst1->name() + "/Q";
-                            origCLK = inst1->name() + "/CLK";
-                        } else if (i == 1) {
-                            origD = inst2->name() + "/D";
-                            origQ = inst2->name() + "/Q";
-                            origCLK = inst2->name() + "/CLK";
-                        } else {
-                            // Optional: handle >2 FFs merged if merge2FF is extended
-                            continue;
+                    // First instance: inst1
+                    for (const auto& [pinName, _] : inst1->name2pPins()) {
+                        if (pinName == "CLK") {
+                            _pinMappings.emplace_back(inst1->name() + "/CLK map " + instance->name() + "/CLK");
+                        } else if (pinName == "D" || pinName.rfind("D", 0) == 0) {
+                            std::string mappedD = "D" + std::to_string(dIndex++);
+                            _pinMappings.emplace_back(inst1->name() + "/" + pinName + " map " + instance->name() + "/" + mappedD);
+                        } else if (pinName == "Q" || pinName.rfind("Q", 0) == 0) {
+                            std::string mappedQ = "Q" + std::to_string(qIndex++);
+                            _pinMappings.emplace_back(inst1->name() + "/" + pinName + " map " + instance->name() + "/" + mappedQ);
                         }
-
-                        _pinMappings.emplace_back(origD + " map " + instance->name() + "/" + dPin);
-                        _pinMappings.emplace_back(origQ + " map " + instance->name() + "/" + qPin);
-                        _pinMappings.emplace_back(origCLK + " map " + instance->name() + "/CLK");
                     }
+
+                    // Second instance: inst2
+                    for (const auto& [pinName, _] : inst2->name2pPins()) {
+                        if (pinName == "CLK") {
+                            _pinMappings.emplace_back(inst2->name() + "/CLK map " + instance->name() + "/CLK");
+                        } else if (pinName == "D" || pinName.rfind("D", 0) == 0) {
+                            std::string mappedD = "D" + std::to_string(dIndex++);
+                            _pinMappings.emplace_back(inst2->name() + "/" + pinName + " map " + instance->name() + "/" + mappedD);
+                        } else if (pinName == "Q" || pinName.rfind("Q", 0) == 0) {
+                            std::string mappedQ = "Q" + std::to_string(qIndex++);
+                            _pinMappings.emplace_back(inst2->name() + "/" + pinName + " map " + instance->name() + "/" + mappedQ);
+                        }
+                    }
+
+
 
                     cell_instance++;
                 }
