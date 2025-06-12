@@ -745,10 +745,10 @@ void MBFFOptimizer::algorithm(std::string baseName)
             std::cout << "Processing net: " << count << "\n";
         }
 
-        // if (count % ploting_interval == 0)
+        // if (count % 10 == 0)
         // {
         //     // std::cout << "Plotting progress: " << count/ploting_interval*10 << "%\n";
-        //     plotMerge(dieWidth(), dieHeight(), _name2pInstances_ff, _name2pInstances_gate, _mergedInstances, baseName, count /ploting_interval);
+        //     plotMerge(dieWidth(), dieHeight(), _name2pInstances_ff, _name2pInstances_gate, _mergedInstances, baseName, count /10);
         // }
     }
 
