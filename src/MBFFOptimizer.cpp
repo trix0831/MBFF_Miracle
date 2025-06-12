@@ -27,15 +27,6 @@ bool MBFFOptimizer::placeLegal(Instance* inst, Point2<int> desPos) {
     vector<Point2<int>> prevCandidates;
     std::unordered_set<Point2<int>> visited;
 
-    //change the FF type of the instance to the best of the checkers
-    if (inst->pCellLibrary()->numBits() == 1) {
-        inst->setCellLibrary(_name2pFFLibrary[FF1Checker[0].second]);
-    } else if (inst->pCellLibrary()->numBits() == 2) {
-        inst->setCellLibrary(_name2pFFLibrary[FF2Checker[0].second]);
-    } else if (inst->pCellLibrary()->numBits() == 4) {
-        inst->setCellLibrary(_name2pFFLibrary[FF4Checker[0].second]);
-    }
-
     candidates.push_back(desPos);
     visited.insert(desPos);
     int count = 0;
@@ -434,16 +425,30 @@ void MBFFOptimizer::Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fs
             int row = floor((y - _pPlacementRows[0]->y()) / (_pPlacementRows[0]->height()));
             int index = floor((x - _pPlacementRows[0]->x()) / (_pPlacementRows[0]->width()));
 
-            instance = merge2FF(Sets->at(elem1)->getInstances(), Sets->at(elem2)->getInstances(), row, index, merge_num, net_count);
+            // create 2 instance that merged 2 ff, but don't use the merge2FF function
+            // if 1 bit ff merge, get 2 bit ff, set the merged instance to best 2 bit ff
+            CellLibrary* bestFFLib = nullptr;
+            if (Sets->at(elem1)->getInstances()->pCellLibrary()->numBits() == 1 &&
+                Sets->at(elem2)->getInstances()->pCellLibrary()->numBits() == 1) {
+                bestFFLib = _name2pFFLibrary[FF2Checker[0].second];
+            } else if (Sets->at(elem1)->getInstances()->pCellLibrary()->numBits() == 2 &&
+                     Sets->at(elem2)->getInstances()->pCellLibrary()->numBits() == 2) {
+                bestFFLib = _name2pFFLibrary[FF4Checker[0].second];
+
+            } else {
+                std::cout << "[ERROR] Cannot merge FFs with different bit widths/ two 4 bits: "
+                          << Sets->at(elem1)->getInstances()->pCellLibrary()->numBits() << " and "
+                          << Sets->at(elem2)->getInstances()->pCellLibrary()->numBits() << "\n";
+            }
+
+            instance = new Instance(
+                "new_inst_" + std::to_string(_instCnt++) + "_" + std::to_string(net_count) + "_" + std::to_string(merge_num),
+                bestFFLib,
+                x, y, Sets->at(elem1)->getInstances()->numPins() + Sets->at(elem2)->getInstances()->numPins()-1
+            );
 
             if (instance) {
-                std::string name = "new_inst_" + std::to_string(_instCnt++) + "_" + std::to_string(net_count) + "_" + std::to_string(merge_num);
-                instance->setName(name);  // Set the new name for the instance
-
-                merge_success = placeLegal(instance, Point2<int>(
-                    floor((y - _pPlacementRows[0]->y()) / _pPlacementRows[0]->height()),
-                    floor((x - _pPlacementRows[0]->x()) / _pPlacementRows[0]->width()))
-                );
+                merge_success = placeLegal(instance, Point2<int>(row, index));
 
                 if (merge_success) {
                     _mergedInstances.push_back(instance);
@@ -540,8 +545,10 @@ void MBFFOptimizer::findFeasable_reg(Net *net, fstream &outfile, int net_count)
     // First, collect all FFs in this net
     for (unsigned i = 1; i < net->numPins(); i++)
     {
-        DisSet *set = new DisSet(net->pPins()[i].pin->getinstance(), net->pPins()[i].pin->x(), net->pPins()[i].pin->y());
-        Sets->push_back(set);
+        if (net->pPins()[i].pin->getinstance()->pCellLibrary()->numBits() != 4){ // dont merge 4 bits FFs
+            DisSet *set = new DisSet(net->pPins()[i].pin->getinstance(), net->pPins()[i].pin->x(), net->pPins()[i].pin->y());
+            Sets->push_back(set);
+        }
     }
 
     // Process FFs that can be merged
@@ -737,75 +744,6 @@ void MBFFOptimizer::printInput()
         cout << key << " has power " << value->gatePower() << endl;
     }
 };
-
-
-Instance* MBFFOptimizer::merge2FF(Instance* FF1, Instance* FF2, int x, int y, int merge_num, int net_count) {
-    // std::cout << "[INFO] Merging FFs: " << FF1->name() << " and " << FF2->name() << "\n";
-    int attempts = 0;
-    Point2<int> placement_point;
-    int placement_X, placement_Y;
-    
-    int q1_x = FF1->x();
-    int q1_y = FF1->y();
-    int q2_x = FF2->x();
-    int q2_y = FF2->y();
-
-    string name = "new_inst_" + to_string(_instCnt++) + "_" + to_string(net_count) + "_" + to_string(merge_num);
-    Instance* outputFF = nullptr;
-    CellLibrary* bestFF;
-
-    while (attempts < get_bit2_ff().size()) {
-        bestFF = get_bit2_ff()[attempts];
-        int numBits = bestFF->numBits();
-
-        placement_point = Point2<int>((q1_x + q2_x) / 2, (q1_y + q2_y) / 2); // correct usage
-        placement_X = placement_point.x;
-        placement_Y = placement_point.y;
-
-        double manhattan1 = abs(q1_x - (_pPlacementRows[0]->x() + placement_X * _pPlacementRows[0]->width())) +
-                            abs(q1_y - (_pPlacementRows[0]->y() + placement_Y * _pPlacementRows[0]->height()));
-        double manhattan2 = abs(q2_x - (_pPlacementRows[0]->x() + placement_X * _pPlacementRows[0]->width())) +
-                            abs(q2_y - (_pPlacementRows[0]->y() + placement_Y * _pPlacementRows[0]->height()));
-
-        double slack1 = FF1->totalTimingSlack() - manhattan1 * _displacementDelay;
-        double slack2 = FF2->totalTimingSlack() - manhattan2 * _displacementDelay;
-
-        if (slack1 > 0 && slack2 > 0) {
-            outputFF = new Instance(name, bestFF,
-                placement_X * _pPlacementRows[0]->width() + _pPlacementRows[0]->x(),
-                placement_Y * _pPlacementRows[0]->height() + _pPlacementRows[0]->y(),
-                bestFF->numPins());
-
-            // Automatically add D0~Dn, Q0~Qn
-            for (int i = 0; i < numBits; ++i) {
-                std::string dName = "D" + std::to_string(i);
-                std::string qName = "Q" + std::to_string(i);
-
-                if (bestFF->pPin(dName)) {
-                    int dx = placement_X + bestFF->pPin(dName)->x();
-                    int dy = placement_Y + bestFF->pPin(dName)->y();
-                    InstancePin* pinD = new InstancePin("", dName + "_", dx, dy, 0);
-                    outputFF->addPin(pinD);
-                }
-
-                if (bestFF->pPin(qName)) {
-                    int qx = placement_X + bestFF->pPin(qName)->x();
-                    int qy = placement_Y + bestFF->pPin(qName)->y();
-                    InstancePin* pinQ = new InstancePin("", qName + "_", qx, qy, 0);
-                    outputFF->addPin(pinQ);
-                }
-            }
-
-            break;
-        }
-
-        ++attempts;
-    }
-
-    return outputFF;
-}
-
-
 
 
 double MBFFOptimizer::HPWL(vector<Instance *> *pInstances)

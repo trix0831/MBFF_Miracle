@@ -64,7 +64,6 @@ public:
   }
 
   ~MBFFOptimizer();
-  Instance *merge2FF(Instance *FF1, Instance *FF2, int x, int y, int merge_num, int net_count);
   unsigned _instCnt;
   void algorithm(std::string basename);
   void placement();
