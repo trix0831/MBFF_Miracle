@@ -26,6 +26,15 @@
 #include <vector>
 using namespace std;
 
+struct NeighInfo
+{
+  unsigned setIdx;
+  double dist;
+
+  // Allow std::sort on distance only.
+  bool operator<(const NeighInfo &o) const { return dist < o.dist; }
+};
+
 class MBFFOptimizer
 {
 public:
@@ -44,10 +53,11 @@ public:
     _outfile = out_file;
     cell_instance = 0;
     init_occupied();
-    initFFChecker();    
+    initFFChecker();
 
-    //set all instance cell library to the best ff
-    for (auto &[name, inst] : _name2pInstances_ff){
+    // set all instance cell library to the best ff
+    for (auto &[name, inst] : _name2pInstances_ff)
+    {
       if (inst->pCellLibrary()->numBits() == 1)
       {
         inst->setCellLibrary(_name2pFFLibrary[FF1Checker[0].second]);
@@ -70,14 +80,14 @@ public:
   void printInput();
   void PrintOutfile(fstream &outfile);
   void init_occupied();
-  bool placeLegal(Instance *instance, Point2<int> desPos);// input instance and the placement point
+  bool placeLegal(Instance *instance, Point2<int> desPos); // input instance and the placement point
   void initFFChecker();
   double score(string InstanceName, int k);
-  vector<Instance*> findknear(string InstanceName, int k);
-  double HPWL(vector<Instance *> *pInstances); 
+  vector<Instance *> findknear(string InstanceName, int k);
+  double HPWL(vector<Instance *> *pInstances);
   // void print_ff_change();
   unsigned cell_instance;
-  Instance* mergeMultiFF(const std::vector<Instance*>& FFs, int x, int y, int merge_num, int net_count);
+  Instance *mergeMultiFF(const std::vector<Instance *> &FFs, int x, int y, int merge_num, int net_count);
   void Synthesize(vector<DisSet *> *Sets, vector<bool> *visited, fstream &outfile, int net_count = 0);
   vector<CellLibrary *> get_bit2_ff()
   {
@@ -141,7 +151,6 @@ public:
     return _name2pGateLibrary;
   }
 
-
 private:
   std::vector<std::vector<bool>> _occupiedMask;
   std::vector<std::pair<Point2<int>, std::string>> FF1Checker;
@@ -192,6 +201,10 @@ private:
   // Displacement delay
   double _displacementDelay;
   vector<CellLibrary *> _2bitffCellLibrary;
+  vector<NeighInfo> kNearestSets(const std::vector<DisSet *> *Sets,
+                                 unsigned elem1,
+                                 unsigned k = 8,
+                                 bool manhattan = true);
   void findFeasable_reg(Net *net, fstream &outfile, int net_count = 0);
   void recordMergedInstance(Instance *instance,
                             const std::vector<std::pair<std::string, std::string>> &pinMap)
