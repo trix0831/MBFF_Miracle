@@ -1,0 +1,1 @@
+g++ -std=c++17 -O2 main.cpp def_tokenizer.cpp def_parser.cpp -o def_parser

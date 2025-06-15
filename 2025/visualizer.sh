@@ -1,0 +1,2 @@
+g++ -std=c++17 -O2     def_parser/def_parser.cpp  def_parser/def_tokenizer.cpp    lef_parser/lef_parser.cpp  lef_parser/lef_tokenizer.cpp   visualizer.cpp     -o visualizer `pkg-config --cflags --libs cairo`
+./visualizer

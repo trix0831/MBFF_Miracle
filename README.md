@@ -18,11 +18,11 @@ Install Cairo, which is the plotting library
 ```bash
 sudo apt install libcairo2-dev
 ```
-In the MBFF_Miracle directory, type:
+In the "MBFF_Miracle" directory, type:
 ```bash 
 make
 ```
-to make the binary file mbff under directory bin
+to make the binary file mbff under directory "bin"
 
 To run the program, run:
 ```bash
@@ -32,7 +32,7 @@ For example:
 ```bash
 bin/mbff testcase/testcase1_0812.txt output/out1
 ```
-For this case, you should see the final result in the output/out1 and the visualization result under the directory pic
+For this case, you should see the final result in the output/out1 and the visualization result under the directory "pic"
 
 ## Evalutation
 To get the evaluation score (Evaluator provided by ICCAD Contest 2024), run
@@ -53,3 +53,13 @@ For example,
 ```
 python3 gifGenerator.py pic/testcase1_0812
 ```
+
+## 2025 Part
+In the report we have mentioned that due to VM problem, we don't have access to Fusion Compiler for a long time. So after disucussion we decided to use the testcase from 2024. We have implemented the parser for the 2025 case and all of them is placed under the directory "2025".
+
+You can run the visualization part by:
+```
+bash visualizer.sh
+visualizer
+```
+But this command should not work if you don't have the testcase provided by the ICCAD Contest 2025, but we can't upload it due to its size and the Non-Disclosure Agreement of Synopsys. The result of the program would be like "2025/chip_layout.png".
