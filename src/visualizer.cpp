@@ -82,7 +82,7 @@ void plotInit(int width, int height,
           std::string caseName){
     const double downScale    = 1000.0;    // DBU → µm
     const double PADDING_UM   = (width+height)/40/downScale;      // in µm
-    const int resolutionScale = 2;         // <--- Add resolution scaling factor
+    const int resolutionScale = 1;         // <--- Add resolution scaling factor
 
     const double widthUm   = width  / downScale;
     const double heightUm  = height / downScale;
@@ -138,7 +138,7 @@ void plotMerge(int width, int height, std::unordered_map<std::string, Instance*>
           std::string caseName, int frame) {
     const double downScale    = 1000.0;    // DBU → µm
     const double PADDING_UM   = (width+height)/40/downScale;      // in µm
-    const int resolutionScale = 2;         // <--- Add resolution scaling factor
+    const int resolutionScale = 1;         // <--- Add resolution scaling factor
 
     const double widthUm   = width  / downScale;
     const double heightUm  = height / downScale;

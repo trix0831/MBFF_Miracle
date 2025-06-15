@@ -740,16 +740,16 @@ void MBFFOptimizer::algorithm(std::string baseName)
         }
 
         count++;
-        if (count % 100 == 0)
-        {
-            std::cout << "Processing net: " << count << "\n";
-        }
-
-        // if (count % 10 == 0)
+        // if (count % 100 == 0)
         // {
-        //     // std::cout << "Plotting progress: " << count/ploting_interval*10 << "%\n";
-        //     plotMerge(dieWidth(), dieHeight(), _name2pInstances_ff, _name2pInstances_gate, _mergedInstances, baseName, count /10);
+        //     std::cout << "Processing net: " << count << "\n";
         // }
+
+        if (count % 40 == 0)
+        {
+            // std::cout << "Plotting progress: " << count/ploting_interval*10 << "%\n";
+            plotMerge(dieWidth(), dieHeight(), _name2pInstances_ff, _name2pInstances_gate, _mergedInstances, baseName, count /40);
+        }
     }
 
     std::cout << "Total nets processed: " << count << "\n";

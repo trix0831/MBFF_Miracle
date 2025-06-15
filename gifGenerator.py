@@ -43,7 +43,7 @@ def main():
         gif_path,
         save_all=True,
         append_images=images[1:],
-        duration=120,
+        duration=300,
         loop=0
     )
 

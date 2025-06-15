@@ -1,48 +1,55 @@
-# eda_CADb
-eda makes me suffer..
+# MBFF_Miracle
+ICCAD Contest Problem B: Power and Timing Optimization Using Multibit Flip-Flop
 
-## Introduction to the file structure
-For the directory bin, it contatins the execution file of the main.cpp.
+Team Number: 26
 
-In the src directory, CellLibrary, DisSet,Graph,Instance,Net,Pin,PlacementRow,Point are file for constructing the data structure used in the main algorithm.
+Team Member: B11901158 Li-Cheng Hsu, B11901153 Hao-Qun Lin, B11901078 Wei-Lung Lin, B11502073 Tzu-En Chiu
 
-There is a MBFFOptimizer file that can call above header file and build the data structure when main file have received input and output file. The algorithm we use is implemented in MBFFOptimizer including syntheisze, find_feasible_region ... and so on. 
+## Introduction
+With the advancement of process nodes, reducing power
+and area while preserving timing is crucial. Flip-flops consume
+significant dynamic power and area, making them prime can-
+didates for optimization. We propose an MBFF optimization
+framework that replaces multiple 1-bit FFs with legal MBFF
+instances while maintaining design correctness.
 
-The testcase directory including sample case and testcase provided by ICCAD Contest 2024.
-
-The util directory including the sanity provided by ICCAD Contest 2024 for checking if the placement is available. And there is another visualizer directory contatins python file that can show the placement result of our algorithm.
-
-The output directory is the result that generated from us in our local computer.
-
-The makefile for compile main.cpp
-
-The reference paper are the paper we read for solving this algorithm
-
-### Getting Started
-under the directory of EDA_CADb
+## How to run the code
+Install Cairo, which is the plotting library
+```bash
+sudo apt install libcairo2-dev
 ```
+In the MBFF_Miracle directory, type:
+```bash 
 make
-./bin/mbff <input_file> <output_file>
 ```
->For example, under the directory of EDA_CADb
-```
-./bin/mbff ./testcase/testcase1/testcase1.txt ./output/out
-```
-### Visualize 
-under the directory of EDA_CADb
+to make the binary file mbff under directory bin
+
+To run the program, run:
 ```bash
-python3 ./util/visualizer/plot.py <input_file> <output_file>
+bin/mbff <input-file> <output-file>
 ```
->For example
- ```bash
- python3 ./util/visualizer/plot_result.py ./testcase/testcase1/testcase1.txt ./output/out
- ```
-### Check correctness
-under the directory of EDA_CADb
+For example:
 ```bash
-./util/sanity/sanity <input_file> <output_file>
+bin/mbff testcase/testcase1_0812.txt output/out1
 ```
->For example
- ```bash
- ./util/sanity/sanity ./testcase/testcase1/testcase1.txt ./output/out
- ```
+For this case, you should see the final result in the output/out1 and the visualization result under the directory pic
+
+## Evalutation
+To get the evaluation score (Evaluator provided by ICCAD Contest 2024), run
+```
+./main <input-file> <output-file>
+```
+For example, run
+```bash
+./main testcase/testcase1_0812.txt output/out1
+```
+
+## Bonus: Generate gif file for the calculating process
+To generate the gif file, you must collect a series of image while calculating 
+```
+python3 gifGenerator.py <directory which store image>
+```
+For example,
+```
+python3 gifGenerator.py pic/testcase1_0812
+```
